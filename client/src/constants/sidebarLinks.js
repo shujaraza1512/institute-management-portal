@@ -6,6 +6,7 @@ export const studentSidebarLinks = [
   { label: 'Progress', path: '/student/progress' },
   { label: 'Timetable', path: '/student/timetable' },
   { label: 'Paper Schedule', path: '/student/paper-schedule' },
+  { label: 'Announcements', path: '/student/announcements' },
   { label: 'Profile', path: '/student/profile' },
 ];
 

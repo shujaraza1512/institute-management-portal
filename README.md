@@ -6,15 +6,15 @@ A role-based web portal for an educational institute, with three roles: **Studen
 
 ---
 
-## Project status: Phase 4 — Public UI / Home Page ✅
+## Project status: Phase 5 — Student Portal ✅
 
 ### Roadmap
 
 - [x] **Phase 1 — Architecture & folder structure**
 - [x] **Phase 2 — Database schema**
 - [x] **Phase 3 — Authentication & RBAC**
-- [x] **Phase 4 — Public UI / Home Page** *(this delivery — see `PHASE_NOTES.md`)*
-- [ ] **Phase 5 — Student portal** (Results, Progress, Timetable, Paper Schedule, Profile)
+- [x] **Phase 4 — Public UI / Home Page**
+- [x] **Phase 5 — Student Portal** *(this delivery — see `PHASE_NOTES.md`)*
 - [ ] **Phase 6 — Teacher portal** (Upload Results, Upload Lecture Units, Upload Monthly Paper, My Classes)
 - [ ] **Phase 7 — Examination Board portal** (Management pages, Approvals, Final Result Publishing, Announcements, Reports)
 - [ ] **Phase 8 — Integration, polish, and review**
@@ -114,7 +114,13 @@ Full details in `PHASE_NOTES.md`.
 
 ---
 
-## Design tokens (blue & white theme)
+## Student Portal (Phase 5)
+
+The first fully functional role in the app — every page fetches real data from the database through `/api/students/me/*` endpoints; nothing is hardcoded on the frontend. Every route resolves "the current student" from the logged-in session server-side (`server/middleware/loadStudent.js`) — no endpoint ever accepts a student ID from the client, so there's no way to even attempt requesting someone else's data.
+
+Two small, deliberate schema additions were needed to satisfy requirements the Phase 2 schema didn't cover: a minimal `Attendance` model (for the dashboard's attendance percentage) and a `guardianPhone` column on `Student` (for the Profile page's parent contact field). Both are documented in full, including exactly why, in `PHASE_NOTES.md`.
+
+---
 
 Defined in `client/tailwind.config.js`, so every future page pulls from the same palette instead of ad-hoc colors:
 
@@ -149,4 +155,4 @@ npm install
 npm run dev               # http://localhost:5173
 ```
 
-The public Home page (`/`) and Login page (`/login`) are fully built. Dashboard routes (`/student`, `/teacher`, `/admin`) still render placeholder content confirming navigation, auth, and styling all work correctly — the real dashboard pages arrive in Phases 5–7.
+The public Home page (`/`), Login page (`/login`), and the entire Student Portal (`/student/*`) are fully built and backed by real data. Teacher and Admin dashboards (`/teacher`, `/admin`) still render placeholder content confirming navigation, auth, and styling all work correctly — those portals arrive in Phases 6–7.
