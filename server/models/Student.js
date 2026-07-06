@@ -15,6 +15,8 @@ module.exports = (sequelize, DataTypes) => {
       phone: { type: DataTypes.STRING },
       address: { type: DataTypes.STRING },
       photoUrl: { type: DataTypes.STRING },
+      // Added in Phase 5 for the Profile page's "Parent Contact" field.
+      guardianPhone: { type: DataTypes.STRING },
     },
     {
       tableName: 'students',
@@ -26,6 +28,7 @@ module.exports = (sequelize, DataTypes) => {
     Student.belongsTo(models.User, { foreignKey: 'userId', as: 'user' });
     Student.belongsTo(models.Class, { foreignKey: 'classId', as: 'class' });
     Student.hasMany(models.Result, { foreignKey: 'studentId', as: 'results' });
+    Student.hasMany(models.Attendance, { foreignKey: 'studentId', as: 'attendanceRecords' });
   };
 
   return Student;

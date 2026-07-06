@@ -31,6 +31,7 @@ module.exports = (sequelize, DataTypes) => {
     Class.hasMany(models.LectureUnit, { foreignKey: 'classId', as: 'lectureUnits' });
     Class.hasMany(models.TeacherUpload, { foreignKey: 'classId', as: 'teacherUploads' });
     Class.hasMany(models.Result, { foreignKey: 'classId', as: 'results' });
+    Class.hasMany(models.Attendance, { foreignKey: 'classId', as: 'attendanceRecords' });
   };
 
   return Class;
