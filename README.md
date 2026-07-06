@@ -6,20 +6,20 @@ A role-based web portal for an educational institute, with three roles: **Studen
 
 ---
 
-## Project status: Phase 2 — Database schema ✅
+## Project status: Phase 4 — Public UI / Home Page ✅
 
 ### Roadmap
 
 - [x] **Phase 1 — Architecture & folder structure**
-- [x] **Phase 2 — Database schema** *(this delivery)*
-- [ ] **Phase 3 — Authentication & RBAC** (login, JWT/session handling, `protect` + `authorize` middleware, real `ProtectedRoute` + `AuthContext`)
-- [ ] **Phase 4 — Public pages** (Home, Login — full designs)
+- [x] **Phase 2 — Database schema**
+- [x] **Phase 3 — Authentication & RBAC**
+- [x] **Phase 4 — Public UI / Home Page** *(this delivery — see `PHASE_NOTES.md`)*
 - [ ] **Phase 5 — Student portal** (Results, Progress, Timetable, Paper Schedule, Profile)
 - [ ] **Phase 6 — Teacher portal** (Upload Results, Upload Lecture Units, Upload Monthly Paper, My Classes)
 - [ ] **Phase 7 — Examination Board portal** (Management pages, Approvals, Final Result Publishing, Announcements, Reports)
 - [ ] **Phase 8 — Integration, polish, and review**
 
-> **Continuing this project in a new chat:** this coding environment resets between separate conversations. Keep this project in a git repo and upload it back (or share the repo URL again) when you're ready for the next phase, so Claude can build on the actual code instead of starting over.
+> **Continuing this project in a new chat:** this coding environment resets between separate conversations. Keep this project in a git repo and upload it back (or share the repo URL again) when you're ready for the next phase, so Claude can build on the actual code instead of starting over. Each phase's `PHASE_NOTES.md` (see project root) documents exactly what changed, so you don't have to rely on chat history to remember.
 
 ---
 
@@ -96,6 +96,24 @@ This was run against a real local MySQL 8 instance while building this phase —
 
 ---
 
+## Authentication (Phase 3)
+
+JWT stored in an `httpOnly` cookie rather than `localStorage` — the frontend never touches the token directly, which closes off the most common XSS-based token theft vector. `server/middleware/auth.js` (`protect`) verifies it and loads the current user; `server/middleware/roleCheck.js` (`authorize('admin', ...)`) gates a route to specific roles once `protect` has run. On the frontend, `AuthContext` checks `/api/auth/me` once on load so a page refresh doesn't log anyone out, and `ProtectedRoute` redirects unauthenticated visitors to `/login` and wrong-role visitors to their own dashboard rather than rendering anything sensitive.
+
+There's no self-registration page — accounts are created by the Examination Board (Student/Teacher Management, arriving in Phases 5–7), matching the spec. Until then, use `node seed/seed.js` to create one test account per role. Full details, test credentials, and the exact request/response flow are in `PHASE_NOTES.md`.
+
+---
+
+## Public UI (Phase 4)
+
+The real Home page: `client/src/pages/public/Home.jsx` composes six components from `client/src/components/home/` — `Navbar`, `Hero`, `About`, `Features`, `Announcements`, `Footer`. All copy, stats, feature descriptions, and contact/social details live in one file, `client/src/constants/siteContent.js` — edit that one file to rebrand the whole page instead of hunting through component markup.
+
+The Navbar/Hero read `useAuth()` (unchanged from Phase 3) to show "Go to Dashboard" instead of "Login" for an already-authenticated visitor — this only *reads* existing auth state, nothing about the auth system itself changed. The Announcements section uses static sample data for now, clearly marked in code, pending a real public announcements endpoint in Phase 7.
+
+Full details in `PHASE_NOTES.md`.
+
+---
+
 ## Design tokens (blue & white theme)
 
 Defined in `client/tailwind.config.js`, so every future page pulls from the same palette instead of ad-hoc colors:
@@ -131,4 +149,4 @@ npm install
 npm run dev               # http://localhost:5173
 ```
 
-There's nothing to log into yet — `/login` and every dashboard route render as placeholders confirming navigation and styling work. Real functionality is layered in over the next phases.
+The public Home page (`/`) and Login page (`/login`) are fully built. Dashboard routes (`/student`, `/teacher`, `/admin`) still render placeholder content confirming navigation, auth, and styling all work correctly — the real dashboard pages arrive in Phases 5–7.

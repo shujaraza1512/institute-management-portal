@@ -1,4 +1,5 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 
 /**
  * Shared shell for all three portals. Each role-specific layout (Student/
@@ -8,11 +9,16 @@ import { Outlet, Link, useNavigate } from 'react-router-dom';
  */
 function DashboardLayout({ sidebarItems, roleLabel }) {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
-  const handleLogout = () => {
-    // TODO (Phase 3): clear the auth cookie/state before redirecting.
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
+
+  const initials = user?.name
+    ? user.name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()
+    : '?';
 
   return (
     <div className="min-h-screen flex bg-surface">
@@ -45,9 +51,11 @@ function DashboardLayout({ sidebarItems, roleLabel }) {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 bg-white border-b border-navy-100 flex items-center justify-between px-6 sticky top-0 z-10">
           <p className="font-display text-navy-800">{roleLabel} Dashboard</p>
-          <div className="w-9 h-9 rounded-full bg-navy-100 text-navy-700 flex items-center justify-center text-sm font-medium">
-            {/* TODO (Phase 3): show real user initials from AuthContext */}
-            U
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted hidden sm:inline">{user?.name}</span>
+            <div className="w-9 h-9 rounded-full bg-navy-100 text-navy-700 flex items-center justify-center text-sm font-medium">
+              {initials}
+            </div>
           </div>
         </header>
 

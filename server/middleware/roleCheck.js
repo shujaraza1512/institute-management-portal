@@ -1,10 +1,10 @@
-// Restricts a route to specific roles, e.g. router.get('/', protect, authorize('admin'), handler).
-// Full implementation lands in Phase 3: Authentication & RBAC, alongside auth.js.
+// Restricts a route to specific roles: router.get('/', protect, authorize('admin'), handler).
+// Must run after protect(), which is what populates req.user.
 const authorize = (...allowedRoles) => (req, res, next) => {
-  return res.status(501).json({
-    success: false,
-    message: 'Role-based authorization is not implemented yet (Phase 3).',
-  });
+  if (!req.user || !allowedRoles.includes(req.user.role)) {
+    return res.status(403).json({ success: false, message: 'You do not have permission to access this resource.' });
+  }
+  next();
 };
 
 module.exports = { authorize };

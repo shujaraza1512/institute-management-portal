@@ -1,9 +1,23 @@
-// Route guard. Real logic (read the logged-in user from AuthContext, redirect
-// to /login if there isn't one, redirect to the user's own dashboard if their
-// role isn't in allowedRoles) is wired up in Phase 3: Authentication & RBAC.
-// For now it renders its children directly so the app stays navigable
-// while the rest of the scaffold is being built.
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
+
 function ProtectedRoute({ children, allowedRoles }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    // Avoids a flash-redirect to /login while the /auth/me check is in flight.
+    return <div className="min-h-screen flex items-center justify-center text-muted">Loading…</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    // Logged in, but wrong portal — send them to the one they actually have.
+    return <Navigate to={`/${user.role}/dashboard`} replace />;
+  }
+
   return children;
 }
 
