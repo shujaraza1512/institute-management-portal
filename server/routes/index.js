@@ -9,7 +9,8 @@ router.get('/health', (req, res) => {
 // Route modules are mounted here as each phase is built:
 router.use('/auth', require('./authRoutes')); // Phase 3
 router.use('/students', require('./studentRoutes')); // Phase 5
-// router.use('/teachers', require('./teacherRoutes'));  // Phase 6
+router.use('/teachers', require('./teacherRoutes')); // Phase 6
+router.use('/files', require('./downloadRoutes')); // Phase 6 -- authenticated, class-scoped file access
 // router.use('/admin', require('./adminRoutes'));       // Phase 7
 
 module.exports = router;

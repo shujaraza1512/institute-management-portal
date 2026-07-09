@@ -1,16 +1,22 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 
-// One shared data-fetching pattern for every student (and later teacher/
-// admin) page: call it with an endpoint, get back { data, loading, error,
-// refetch }. Centralizing this means every page shows loading/error states
-// the same way instead of each one reinventing it slightly differently.
+// One shared data-fetching pattern for every student/teacher page: call it
+// with an endpoint, get back { data, loading, error, refetch }. Passing a
+// falsy endpoint (e.g. still waiting on a required filter to be chosen)
+// skips the fetch entirely instead of hitting the API with a bad URL.
 function useFetch(endpoint) {
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!endpoint);
   const [error, setError] = useState('');
 
   const fetchData = useCallback(async () => {
+    if (!endpoint) {
+      setData(null);
+      setLoading(false);
+      setError('');
+      return;
+    }
     setLoading(true);
     setError('');
     try {

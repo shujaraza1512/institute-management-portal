@@ -26,13 +26,13 @@ const getDashboard = async (req, res, next) => {
           })
         : null,
       db.Result.findOne({
-        where: { studentId: student.id },
+        where: { studentId: student.id, status: 'approved' },
         order: [['month', 'DESC']],
         include: [{ model: db.Subject, as: 'subject' }],
       }),
       db.Announcement.count({ where: { audience: { [Op.in]: ['all', 'students'] } } }),
       db.Attendance.findAll({ where: { studentId: student.id }, attributes: ['status'] }),
-      db.Result.findAll({ where: { studentId: student.id }, attributes: ['marks', 'totalMarks'] }),
+      db.Result.findAll({ where: { studentId: student.id, status: 'approved' }, attributes: ['marks', 'totalMarks'] }),
     ]);
 
     const subjectsCount = new Set(assignments.map((a) => a.subjectId)).size;
@@ -130,7 +130,7 @@ const getResults = async (req, res, next) => {
     const student = req.student;
     const { month } = req.query;
 
-    const where = { studentId: student.id };
+    const where = { studentId: student.id, status: 'approved' };
     if (month) where.month = month;
 
     const results = await db.Result.findAll({
@@ -141,11 +141,11 @@ const getResults = async (req, res, next) => {
 
     // Class rank for that subject+month — computed on read (not stored),
     // since it depends on every classmate's marks and would go stale the
-    // moment any of them changed.
+    // moment any of them changed. Only approved results count toward rank.
     const withPosition = await Promise.all(
       results.map(async (r) => {
         const higherCount = await db.Result.count({
-          where: { classId: r.classId, subjectId: r.subjectId, month: r.month, marks: { [Op.gt]: r.marks } },
+          where: { classId: r.classId, subjectId: r.subjectId, month: r.month, status: 'approved', marks: { [Op.gt]: r.marks } },
         });
         return {
           id: r.id,
@@ -172,7 +172,7 @@ const getProgress = async (req, res, next) => {
   try {
     const student = req.student;
     const results = await db.Result.findAll({
-      where: { studentId: student.id },
+      where: { studentId: student.id, status: 'approved' },
       include: [{ model: db.Subject, as: 'subject' }],
       order: [['month', 'ASC']],
     });
@@ -290,6 +290,70 @@ const getAnnouncements = async (req, res, next) => {
   }
 };
 
+// --- Assignments (added Phase 6) ---------------------------------------------------------------
+// Read-only, scoped to the student's own class -- never accepts a classId
+// from the client, same pattern as every other endpoint in this file.
+const getAssignments = async (req, res, next) => {
+  try {
+    const student = req.student;
+    if (!student.classId) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const assignments = await db.Assignment.findAll({
+      where: { classId: student.classId },
+      include: [{ model: db.Subject, as: 'subject' }],
+      order: [['dueDate', 'DESC']],
+    });
+
+    res.json({
+      success: true,
+      data: assignments.map((a) => ({
+        id: a.id,
+        title: a.title,
+        description: a.description,
+        subject: a.subject.name,
+        dueDate: a.dueDate,
+        hasAttachment: !!a.attachmentPath,
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// --- Lecture materials (added Phase 6) ---------------------------------------------------------------
+const getLectureMaterials = async (req, res, next) => {
+  try {
+    const student = req.student;
+    if (!student.classId) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const materials = await db.LectureUnit.findAll({
+      where: { classId: student.classId },
+      include: [{ model: db.Subject, as: 'subject' }],
+      order: [['createdAt', 'DESC']],
+    });
+
+    res.json({
+      success: true,
+      data: materials.map((m) => ({
+        id: m.id,
+        title: m.title,
+        description: m.description,
+        materialType: m.materialType,
+        subject: m.subject.name,
+        hasFile: !!m.filePath,
+        externalLink: m.externalLink,
+        uploadedAt: m.createdAt,
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getDashboard,
   getProfile,
@@ -299,4 +363,6 @@ module.exports = {
   getTimetable,
   getPaperSchedule,
   getAnnouncements,
+  getAssignments,
+  getLectureMaterials,
 };

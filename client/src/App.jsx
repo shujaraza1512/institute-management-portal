@@ -17,6 +17,13 @@ import StudentAnnouncements from './pages/student/Announcements.jsx';
 import StudentProfile from './pages/student/Profile.jsx';
 
 import TeacherDashboard from './pages/teacher/Dashboard.jsx';
+import TeacherResults from './pages/teacher/Results.jsx';
+import TeacherAssignments from './pages/teacher/Assignments.jsx';
+import TeacherLectureMaterials from './pages/teacher/LectureMaterials.jsx';
+import TeacherTimetable from './pages/teacher/Timetable.jsx';
+import TeacherAnnouncements from './pages/teacher/Announcements.jsx';
+import TeacherProfile from './pages/teacher/Profile.jsx';
+
 import AdminDashboard from './pages/admin/Dashboard.jsx';
 
 function App() {
@@ -45,7 +52,7 @@ function App() {
         <Route path="profile" element={<StudentProfile />} />
       </Route>
 
-      {/* Teacher portal — Upload pages/My Classes added in Phase 6 */}
+      {/* Teacher portal — fully built out in Phase 6 */}
       <Route
         path="/teacher"
         element={
@@ -54,7 +61,14 @@ function App() {
           </ProtectedRoute>
         }
       >
+        <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<TeacherDashboard />} />
+        <Route path="results" element={<TeacherResults />} />
+        <Route path="assignments" element={<TeacherAssignments />} />
+        <Route path="lecture-materials" element={<TeacherLectureMaterials />} />
+        <Route path="timetable" element={<TeacherTimetable />} />
+        <Route path="announcements" element={<TeacherAnnouncements />} />
+        <Route path="profile" element={<TeacherProfile />} />
       </Route>
 
       {/* Examination Board (Admin) portal — management pages added in Phase 7 */}

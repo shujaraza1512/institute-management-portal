@@ -1,7 +1,10 @@
-// Populates enough data across every model to exercise the Student Portal
-// (Phase 5) properly: two students with real data in the same class (to
-// prove data isolation between them) plus a third with no personal records
-// at all (to exercise empty states). Run with: node seed/seed.js
+// Populates enough data to exercise the Student Portal (Phase 5) and Teacher
+// Portal (Phase 6) properly: two students with real data in the same class
+// (to prove data isolation), a third with none (empty states), two teachers
+// with assignments (to prove cross-teacher isolation), a third teacher with
+// none (empty states), and a second class neither assigned teacher teaches
+// (to prove "cannot access another class unless assigned"). Run with:
+// node seed/seed.js
 // NOT for production use — sync({ force: true }) drops and recreates tables.
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
@@ -43,6 +46,16 @@ const run = async () => {
     role: 'teacher',
   });
 
+  // Deliberately has zero assignments -- used to test the Teacher Portal's
+  // empty states (dashboard, classes, results, assignments, materials).
+  const teacherUser3 = await db.User.create({
+    name: 'Nadia Farooq',
+    email: 'nadia.farooq@institute.edu',
+    instituteId: 'TCH-103',
+    password: passwordHash,
+    role: 'teacher',
+  });
+
   const studentUser1 = await db.User.create({
     name: 'Ali Raza',
     email: 'ali.raza@institute.edu',
@@ -69,14 +82,18 @@ const run = async () => {
     role: 'student',
   });
 
-  // --- Class & Subjects --------------------------------------------------------
+  // --- Classes & Subjects --------------------------------------------------------
   const class10A = await db.Class.create({ name: '10', section: 'A' });
+  // Neither teacher below is assigned to this class/subject combo -- used to
+  // prove a teacher gets 403 trying to touch a class they don't teach.
+  const class10B = await db.Class.create({ name: '10', section: 'B' });
   const csSubject = await db.Subject.create({ name: 'Computer Science', code: 'CS-101' });
   const engSubject = await db.Subject.create({ name: 'English', code: 'ENG-101' });
 
   // --- Profiles ----------------------------------------------------------------
   const teacher1 = await db.Teacher.create({ userId: teacherUser1.id, department: 'Computer Science' });
   const teacher2 = await db.Teacher.create({ userId: teacherUser2.id, department: 'English' });
+  const teacher3 = await db.Teacher.create({ userId: teacherUser3.id, department: 'Mathematics' });
 
   const student1 = await db.Student.create({
     userId: studentUser1.id,
@@ -107,6 +124,8 @@ const run = async () => {
   });
 
   // --- Teacher assignments -------------------------------------------------------
+  // Note: class10B has no assignments at all -- neither teacher1 nor
+  // teacher2 teaches it, which is exactly what the cross-class test needs.
   await db.TeacherAssignment.create({ teacherId: teacher1.id, classId: class10A.id, subjectId: csSubject.id });
   await db.TeacherAssignment.create({ teacherId: teacher2.id, classId: class10A.id, subjectId: engSubject.id });
 
@@ -123,17 +142,48 @@ const run = async () => {
     { classId: class10A.id, subjectId: engSubject.id, examDate: '2026-08-18', startTime: '10:00:00', durationMinutes: 90, room: 'Hall A' },
   ]);
 
-  // --- Lecture unit (carried over from Phase 2) ---------------------------------------
+  // --- Lecture materials (Phase 6: description/link support added) ---------------------------------------
   await db.LectureUnit.create({
     teacherId: teacher1.id,
     classId: class10A.id,
     subjectId: csSubject.id,
     title: 'Unit 1: Problem Solving and Algorithms',
+    description: 'Introductory notes covering flowcharts, pseudocode, and basic algorithm design.',
     materialType: 'notes',
-    filePath: '/uploads/unit1-notes.pdf',
+    filePath: '/uploads/lecture-materials/unit1-notes.pdf',
+  });
+  await db.LectureUnit.create({
+    teacherId: teacher2.id,
+    classId: class10A.id,
+    subjectId: engSubject.id,
+    title: 'Grammar Reference Guide',
+    description: 'A supplementary external resource for grammar practice.',
+    materialType: 'link',
+    externalLink: 'https://www.grammarly.com/blog/grammar-basics/',
   });
 
-  // --- Teacher upload pending review (carried over from Phase 2) -----------------------
+  // --- Assignments (new in Phase 6) ---------------------------------------
+  await db.Assignment.bulkCreate([
+    {
+      teacherId: teacher1.id,
+      classId: class10A.id,
+      subjectId: csSubject.id,
+      title: 'Flowchart Practice Set',
+      description: 'Draw flowcharts for the five problems listed in Unit 1, Exercise 3.',
+      dueDate: '2026-07-20',
+    },
+    {
+      teacherId: teacher2.id,
+      classId: class10A.id,
+      subjectId: engSubject.id,
+      title: 'Essay: My Summer Vacation',
+      description: 'Write a 300-word essay. Focus on descriptive language.',
+      dueDate: '2026-07-15',
+    },
+  ]);
+
+  // --- Teacher upload (legacy Phase 2 concept -- not used by Phase 6's direct-entry
+  // results flow, kept only because it already existed and nothing reads it) -----------------------
   await db.TeacherUpload.create({
     teacherId: teacher1.id,
     classId: class10A.id,
@@ -144,21 +194,30 @@ const run = async () => {
     status: 'pending',
   });
 
-  // --- Results (published, student-visible) ----------------------------------------
-  // Two months x two subjects for each of the two "real" students, so
-  // Progress has an actual trend line and Results has something to filter.
+  // --- Results ----------------------------------------
+  // Approved results (student-visible) -- two months x two subjects for
+  // each of the two "real" students, so Progress has an actual trend line.
   await db.Result.bulkCreate([
-    { studentId: student1.id, subjectId: csSubject.id, classId: class10A.id, marks: 82, totalMarks: 100, grade: 'A', teacherRemarks: 'Consistent performance throughout the month.', month: '2026-04' },
-    { studentId: student1.id, subjectId: csSubject.id, classId: class10A.id, marks: 88, totalMarks: 100, grade: 'A+', teacherRemarks: 'Excellent improvement.', month: '2026-05' },
-    { studentId: student1.id, subjectId: engSubject.id, classId: class10A.id, marks: 74, totalMarks: 100, grade: 'B+', teacherRemarks: 'Good vocabulary, work on grammar.', month: '2026-04' },
-    { studentId: student1.id, subjectId: engSubject.id, classId: class10A.id, marks: 79, totalMarks: 100, grade: 'A-', teacherRemarks: 'Steady progress.', month: '2026-05' },
+    { studentId: student1.id, subjectId: csSubject.id, classId: class10A.id, marks: 82, totalMarks: 100, teacherRemarks: 'Consistent performance throughout the month.', month: '2026-04', status: 'approved', createdBy: teacherUser1.id },
+    { studentId: student1.id, subjectId: csSubject.id, classId: class10A.id, marks: 88, totalMarks: 100, teacherRemarks: 'Excellent improvement.', month: '2026-05', status: 'approved', createdBy: teacherUser1.id },
+    { studentId: student1.id, subjectId: engSubject.id, classId: class10A.id, marks: 74, totalMarks: 100, teacherRemarks: 'Good vocabulary, work on grammar.', month: '2026-04', status: 'approved', createdBy: teacherUser2.id },
+    { studentId: student1.id, subjectId: engSubject.id, classId: class10A.id, marks: 79, totalMarks: 100, teacherRemarks: 'Steady progress.', month: '2026-05', status: 'approved', createdBy: teacherUser2.id },
 
-    { studentId: student2.id, subjectId: csSubject.id, classId: class10A.id, marks: 91, totalMarks: 100, grade: 'A+', teacherRemarks: 'Outstanding logical thinking.', month: '2026-04' },
-    { studentId: student2.id, subjectId: csSubject.id, classId: class10A.id, marks: 85, totalMarks: 100, grade: 'A', teacherRemarks: 'Solid work.', month: '2026-05' },
-    { studentId: student2.id, subjectId: engSubject.id, classId: class10A.id, marks: 88, totalMarks: 100, grade: 'A', teacherRemarks: 'Confident writing style.', month: '2026-04' },
-    { studentId: student2.id, subjectId: engSubject.id, classId: class10A.id, marks: 92, totalMarks: 100, grade: 'A+', teacherRemarks: 'Excellent essay structure.', month: '2026-05' },
+    { studentId: student2.id, subjectId: csSubject.id, classId: class10A.id, marks: 91, totalMarks: 100, teacherRemarks: 'Outstanding logical thinking.', month: '2026-04', status: 'approved', createdBy: teacherUser1.id },
+    { studentId: student2.id, subjectId: csSubject.id, classId: class10A.id, marks: 85, totalMarks: 100, teacherRemarks: 'Solid work.', month: '2026-05', status: 'approved', createdBy: teacherUser1.id },
+    { studentId: student2.id, subjectId: engSubject.id, classId: class10A.id, marks: 88, totalMarks: 100, teacherRemarks: 'Confident writing style.', month: '2026-04', status: 'approved', createdBy: teacherUser2.id },
+    { studentId: student2.id, subjectId: engSubject.id, classId: class10A.id, marks: 92, totalMarks: 100, teacherRemarks: 'Excellent essay structure.', month: '2026-05', status: 'approved', createdBy: teacherUser2.id },
     // student3 (Zara Malik) intentionally has zero Result rows.
-  ]);
+  ], { individualHooks: true }); // bulkCreate skips model hooks unless told otherwise -- needed so grade actually gets computed
+
+  // Pending results (Phase 6): submitted by Ayesha for June, not yet
+  // reviewed -- these must NOT show up in student1/student2's Phase 5
+  // views, but SHOULD show up in Ayesha's "Pending Result Uploads" count
+  // and in her Results roster as editable rows.
+  await db.Result.bulkCreate([
+    { studentId: student1.id, subjectId: csSubject.id, classId: class10A.id, marks: 84, totalMarks: 100, teacherRemarks: 'June test.', month: '2026-06', status: 'pending', createdBy: teacherUser1.id },
+    { studentId: student2.id, subjectId: csSubject.id, classId: class10A.id, marks: 89, totalMarks: 100, teacherRemarks: 'June test.', month: '2026-06', status: 'pending', createdBy: teacherUser1.id },
+  ], { individualHooks: true });
 
   // --- Attendance ----------------------------------------------------------------
   // Same 20 school days for both students, with different absences/leaves
@@ -199,16 +258,24 @@ const run = async () => {
       audience: 'all',
       postedBy: admin.id,
     },
+    {
+      title: 'Staff Meeting -- July 10th',
+      description: 'All teaching staff should attend the monthly review meeting in the staff room.',
+      audience: 'teachers',
+      postedBy: admin.id,
+    },
   ]);
 
   console.log('Seed complete.\n');
   console.log('Test accounts (all use password: Password123!):');
   console.log('  Admin   -> ADM-001 / admin@institute.edu');
-  console.log('  Teacher -> TCH-101 / ayesha.khan@institute.edu   (Computer Science)');
-  console.log('  Teacher -> TCH-102 / bilal.sheikh@institute.edu  (English)');
-  console.log('  Student -> STU-2001 / ali.raza@institute.edu     (has results + attendance)');
-  console.log('  Student -> STU-2002 / sara.ahmed@institute.edu   (has results + attendance -- different numbers than Ali)');
+  console.log('  Teacher -> TCH-101 / ayesha.khan@institute.edu   (CS, class 10-A -- has results/assignments/materials + 2 pending results)');
+  console.log('  Teacher -> TCH-102 / bilal.sheikh@institute.edu  (English, class 10-A -- has results/assignments/materials)');
+  console.log('  Teacher -> TCH-103 / nadia.farooq@institute.edu  (no assignments at all -- for testing empty states)');
+  console.log('  Student -> STU-2001 / ali.raza@institute.edu     (has approved results + attendance; also has 1 pending result not yet visible)');
+  console.log('  Student -> STU-2002 / sara.ahmed@institute.edu   (has approved results + attendance -- different numbers than Ali)');
   console.log('  Student -> STU-2003 / zara.malik@institute.edu   (no results/attendance -- for testing empty states)');
+  console.log('  Class 10-B exists but no teacher is assigned to it -- for testing cross-class 403s.');
 
   process.exit(0);
 };

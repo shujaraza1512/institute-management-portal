@@ -1,91 +1,116 @@
-# Phase 5 — Student Portal
+# Phase 6 — Teacher Portal
+
+## A note on scope
+
+The detailed Phase 6 requirements provided for this phase differ substantially from the "upload a results file" model in the original master spec: results are now entered directly per-student (not via Excel/CSV upload), and "uploads" are split into two distinct, fully-CRUD-able entities — **Assignments** and **Lecture Materials** — rather than one generic upload type. This phase follows the detailed requirements as the source of truth. Where that meant touching Phase 2/5 files, it's called out explicitly below, along with why.
 
 ## What was added
 
-The first fully functional portal in the app. Every page listed below fetches real data from the database through a dedicated API endpoint — nothing is hardcoded or mocked on the frontend.
-
-- **Dashboard** — welcome card (name, class/section, Institute ID), overall attendance %, overall academic average, and 4 summary cards (Subjects, Upcoming Exam, Latest Result, Announcements).
-- **Results** — table of published results (subject, marks, grade, percentage, class position, month, teacher remarks), filterable by month.
-- **Progress** — monthly average trend (line chart) and subject-wise performance (bar chart), plus an overall average, using `recharts`.
-- **Timetable** — weekly class timetable, with today's classes highlighted.
-- **Paper Schedule** — upcoming exams for the student's class (subject, date, time, duration, room).
-- **Announcements** — notices from the Examination Board, newest first.
-- **Profile** — student info (name, email, phone, parent contact, class, roll number, address) plus a working change-password form.
-
-Every one of these shows a loading state while fetching, an error state (with retry) if the request fails, and an appropriate empty state if there's genuinely no data yet — verified for all three, not just designed for them (see "How this was tested").
-
-## How student data isolation works
-
-`server/middleware/loadStudent.js` runs after `protect` + `authorize('student')` on every route in `server/routes/studentRoutes.js`. It looks up the Student profile linked to the *logged-in user* and attaches it as `req.student`. **No route in this phase accepts a student ID from the client at all** — every handler works with "my own record," resolved server-side. This isn't "check that studentId belongs to this user" logic bolted onto each route (which is easy to get wrong on one route and forget on another) — there's structurally no parameter through which a student could even attempt to ask for someone else's data.
+- **Teacher Dashboard** — welcome card (name, Employee ID, assigned subjects/classes), 4 summary cards (Total Assigned Classes, Total Students, Today's Lectures, Pending Result Uploads), recent announcements, and quick-action links to Results/Assignments/Lecture Materials/Timetable.
+- **Student Result Management** — select Class → Subject → Exam Month, see every student in that class in a roster table (Roll Number, Name, Marks, Grade, Remarks, Status), and add/edit/delete a result inline per row. Marks/percentage/grade are validated and computed server-side — never trusted from the client.
+- **Assignments** — full CRUD (title, description, class, subject, due date, optional file attachment).
+- **Lecture Materials** — full CRUD, accepting either an uploaded file (PDF/PPT/DOC) or an external link, not both.
+- **Timetable** — the teacher's own weekly schedule across every class they teach, with today highlighted.
+- **Announcements** — read-only, audience `all` or `teachers`, newest first.
+- **Profile** — name, email, phone, Employee ID, assigned classes/subjects, plus a change-password form.
+- **Student-facing additions**: `GET /api/students/me/assignments` and `GET /api/students/me/lecture-materials` — read-only, scoped to the student's own class, satisfying "students should only see their own class's content." No new student-facing *pages* were built for these (out of scope for a phase titled Teacher Portal) — the endpoints exist and are tested; wiring them into Student Portal pages is a natural follow-up.
 
 ## Database changes
 
-Two small, deliberate additions — both are additive (new table / new nullable column), nothing existing was altered or removed:
+**`Result` (modified):**
+- Added `status` (ENUM: `pending`/`approved`/`rejected`, default `pending`). Since results are now created directly by a teacher instead of being parsed from an approved file upload, something has to distinguish "visible to students" from "not yet reviewed" — this is that field. **Phase 5's student-facing queries were updated to filter `status: 'approved'`** (previously they had no status filter at all, since Result was defined to only ever contain approved data). This is the one real modification to already-shipped Phase 5 code, and it was necessary: without it, a teacher's freshly-entered pending marks would immediately leak to students, undoing "teacher cannot publish results directly" from the original spec.
+- Added `createdBy` (User id). What makes "a teacher cannot edit another teacher's result" and "Pending Result Uploads" (dashboard count) both concretely enforceable/computable, rather than inferred from class/subject assignment alone.
+- Added a `beforeSave` hook that recomputes `grade` from `marks`/`totalMarks` on every create/update, using a fixed scale (A+ ≥90, A ≥80, B+ ≥70, B ≥60, C ≥50, D ≥40, else F). `grade` is never accepted from client input.
+- **Business rule added**: once a result's status is `approved`, a teacher can no longer edit or delete it (409 response) — it's already been published to students.
 
-1. **New `Attendance` model** (`server/models/Attendance.js`): `studentId`, `classId`, `date`, `status` (`present`/`absent`/`leave`), unique on `(studentId, date)`. The original spec listed full "Attendance Management" as a *future* feature, and Phase 2's schema (already reviewed and shipped) has no attendance table at all. Since the Dashboard requirement explicitly asks for a real attendance percentage, and "no dummy frontend-only data" ruled out faking it, this is the smallest table that makes that number real. It does **not** include any teacher-facing "mark attendance" workflow — that's out of scope here.
-2. **New `guardianPhone` column on `Student`** (`server/models/Student.js`): the Profile page's "Parent Contact" field didn't correspond to anything in the Phase 2 schema either.
+**`Assignment` (new):** `teacherId`, `classId`, `subjectId`, `title`, `description`, `dueDate`, `attachmentPath` (nullable).
 
-**Important:** `server.js` calls `sequelize.sync()` (no `alter`), which only creates *missing* tables — it will **not** retroactively add the new `guardianPhone` column to an already-existing `students` table. If you already have a database from Phase 2/3/4, you need to re-run `node seed/seed.js` (drops and recreates every table, including this one) to pick up the schema change. This project is still at the dev/seed-data stage, so that's a non-issue — just know it's not something `npm run dev` alone will fix.
+**`LectureUnit` (modified):** added `description` and `externalLink`; `filePath` is now nullable (a material is either a file or a link, validated in the controller). The `assignment` value was removed from the `materialType` enum, now `pdf`/`notes`/`slides`/`link`, since Assignments are their own model.
 
-## New API endpoints
+**Not used by this phase:** `TeacherUpload` (the Phase 2 file-based upload concept) remains in the schema untouched but nothing in Phase 6 creates new rows there — it's superseded by direct Result entry for this phase's scope.
 
-All under `/api/students`, all requiring a valid student session (`protect` + `authorize('student')` + `loadStudent`):
+**One important operational note:** `server.js` calls `sequelize.sync()` (no `alter`), which only creates missing tables — it will **not** add the new columns above to an already-existing database. As with Phase 5's `guardianPhone` addition, run `node seed/seed.js` after integrating to pick up the schema changes (this project is still at the seed-data stage, so this is a non-issue in practice).
+
+## API endpoints
+
+All under `/api/teachers`, requiring `protect` + `authorize('teacher')` + `loadTeacher` (resolves `req.teacher` from the session — no route accepts a `teacherId` from the client):
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| GET | `/me/dashboard` | Composed summary for the dashboard (one call instead of five) |
-| GET | `/me/profile` | Student info for the Profile page |
-| PUT | `/me/password` | Change password (current + new, min 8 chars) |
-| GET | `/me/results` | Results list; optional `?month=YYYY-MM` filter |
-| GET | `/me/progress` | Monthly trend + subject-wise averages + overall average |
-| GET | `/me/timetable` | Weekly timetable for the student's class |
-| GET | `/me/paper-schedule` | Upcoming exams for the student's class |
-| GET | `/me/announcements` | Announcements with audience `all` or `students`, newest first |
+| GET | `/me/dashboard` | Dashboard summary |
+| GET | `/me/profile` | Profile info |
+| PUT | `/me/password` | Change password |
+| GET | `/me/classes` | Assigned classes/subjects (data source for form dropdowns) |
+| GET | `/me/timetable` | Teacher's own weekly timetable |
+| GET | `/me/announcements` | Announcements (audience `all`/`teachers`) |
+| GET | `/me/results` | Roster for `?classId=&subjectId=&month=` |
+| POST | `/me/results` | Create a result |
+| PUT | `/me/results/:id` | Edit a result (own, not-yet-approved only) |
+| DELETE | `/me/results/:id` | Delete a result (own, not-yet-approved only) |
+| GET/POST/PUT/DELETE | `/me/assignments[/:id]` | Assignment CRUD (own records only) |
+| GET/POST/PUT/DELETE | `/me/lecture-materials[/:id]` | Lecture Material CRUD (own records only) |
 
-## Files changed
+Plus two additions elsewhere:
+- `GET /api/students/me/assignments`, `GET /api/students/me/lecture-materials` — student-facing, class-scoped reads.
+- `GET /api/files/assignments/:id/download`, `GET /api/files/lecture-materials/:id/download` — authenticated, class-scoped file downloads (see "Security fix" below).
 
-**New (backend):**
-```
-server/models/Attendance.js
-server/middleware/loadStudent.js
-server/controllers/studentController.js
-server/routes/studentRoutes.js
-```
+## Modified files (and why)
 
-**New (frontend):**
 ```
-client/src/hooks/useFetch.js
-client/src/components/common/LoadingState.jsx
-client/src/components/common/ErrorState.jsx
-client/src/components/common/EmptyState.jsx
-client/src/components/common/SummaryCard.jsx
-client/src/pages/student/Results.jsx
-client/src/pages/student/Progress.jsx
-client/src/pages/student/Timetable.jsx
-client/src/pages/student/PaperSchedule.jsx
-client/src/pages/student/Announcements.jsx
-client/src/pages/student/Profile.jsx
-```
-
-**Modified:**
-```
-server/models/Student.js          (added guardianPhone field + Attendance association)
-server/models/Class.js            (added Attendance association)
-server/routes/index.js            (mounts /api/students)
-server/seed/seed.js               (expanded — see below)
-client/src/pages/student/Dashboard.jsx   (was a placeholder — now real)
-client/src/App.jsx                 (added the 6 new nested student routes)
-client/src/constants/sidebarLinks.js     (added "Announcements" — see note below)
+server/models/Result.js            -- status, createdBy, grade hook
+server/models/LectureUnit.js       -- description, externalLink, nullable filePath
+server/models/Class.js             -- Assignment association
+server/models/Subject.js           -- Assignment association
+server/models/Teacher.js           -- Assignment association (had to alias it
+                                       homeworkAssignments -- see "Bugs caught" below)
+server/controllers/studentController.js  -- status:'approved' filter (see Database changes)
+server/routes/studentRoutes.js     -- 2 new read-only routes
+server/routes/index.js             -- mounts /api/teachers and /api/files
+server/app.js                      -- removed public static /uploads mount (security)
+server/middleware/errorHandler.js  -- graceful Multer + unique-constraint error handling
+server/seed/seed.js                -- see below
+client/src/constants/sidebarLinks.js  -- teacher section rewritten (see below)
+client/src/hooks/useFetch.js        -- supports a falsy/conditional endpoint (skips fetch)
+client/src/pages/teacher/Dashboard.jsx  -- was a placeholder, now real
 README.md
 ```
 
-**One sidebar change worth flagging:** the original Phase 1 sidebar (matching the original spec) didn't include a separate "Announcements" link — announcements were only ever meant to appear on the Dashboard. But this phase's requirements list Announcements as its own module alongside Results/Progress/Timetable, and I built it as a full page. Without adding the link, that page would only be reachable by typing the URL directly, so I added one line to `studentSidebarLinks` in `client/src/constants/sidebarLinks.js`. This is the one "modify a previous phase's file" exception, and it's purely additive (one array entry).
+**Sidebar rewrite, explained:** the Phase 1 teacher sidebar (Upload Results / Upload Lecture Units / Upload Monthly Paper / My Classes) matched the *original* spec's file-upload model. The detailed Phase 6 spec's page set is entirely different (Dashboard, Results, Assignments, Lecture Materials, Timetable, Announcements, Profile), so the sidebar had to change to match what was actually built — the old links pointed at pages that no longer exist under this design. "My Classes" specifically was folded into the Results page's class/subject selector plus the Dashboard's summary cards, since the detailed spec doesn't call for it as a separate page.
 
-**Untouched:** `AuthContext.jsx`, `ProtectedRoute.jsx`, `Login.jsx`, `DashboardLayout.jsx`, `TeacherLayout.jsx`, `AdminLayout.jsx`, every Phase 4 `components/home/*` file, and the Teacher/Admin dashboard placeholders. Verified with `git status` before committing, not assumed.
+## New files
+
+**Backend:**
+```
+server/models/Assignment.js
+server/middleware/loadTeacher.js
+server/middleware/uploadFile.js
+server/controllers/teacherController.js
+server/controllers/resultController.js
+server/controllers/assignmentController.js
+server/controllers/lectureMaterialController.js
+server/routes/teacherRoutes.js
+server/routes/downloadRoutes.js
+```
+
+**Frontend:**
+```
+client/src/components/teacher/StatusBadge.jsx
+client/src/components/teacher/ClassSubjectFields.jsx
+client/src/pages/teacher/Results.jsx
+client/src/pages/teacher/Assignments.jsx
+client/src/pages/teacher/LectureMaterials.jsx
+client/src/pages/teacher/Timetable.jsx
+client/src/pages/teacher/Announcements.jsx
+client/src/pages/teacher/Profile.jsx
+```
+
+## Security fix made along the way
+
+Phase 1's `app.js` served the entire `uploads/` folder publicly via `express.static('uploads')` — harmless while no real files existed, but Phase 6 introduces real assignment attachments and lecture material files. Left as-is, anyone with (or guessing) a file URL could download it with zero login. Replaced with two authenticated routes (`server/routes/downloadRoutes.js`) that check the requester's role and, for students, that the file actually belongs to their own class.
 
 ## New dependencies
 
-**None.** `recharts` (Progress charts) and `lucide-react` (icons) were both already in `client/package.json` since Phase 1. `bcryptjs`/`sequelize`/`express-validator` on the backend likewise already present.
+**None.** `multer` was already a dependency since Phase 1.
 
 ## New environment variables
 
@@ -93,82 +118,53 @@ README.md
 
 ## Test credentials
 
-All seeded by `node seed/seed.js`, all using password `Password123!`:
+All via `node seed/seed.js`, password `Password123!` for everyone:
 
-| Role | Institute ID | Email | Notes |
-|---|---|---|---|
-| Student | `STU-2001` | ali.raza@institute.edu | Has results + attendance |
-| Student | `STU-2002` | sara.ahmed@institute.edu | Same class as Ali, **different** results/attendance — use this pair to verify data isolation |
-| Student | `STU-2003` | zara.malik@institute.edu | Same class, but **zero** results/attendance — use this to verify empty states |
-| Teacher | `TCH-101` | ayesha.khan@institute.edu | For the cross-role 403 test |
-| Admin | `ADM-001` | admin@institute.edu | For the cross-role 403 test |
+| Role | ID | Notes |
+|---|---|---|
+| Teacher | `TCH-101` (ayesha.khan@institute.edu) | Teaches CS to class 10-A. Has results (including 2 pending), assignments, and materials — the main "everything works" account. |
+| Teacher | `TCH-102` (bilal.sheikh@institute.edu) | Teaches English to class 10-A. Used to prove cross-teacher isolation against TCH-101. |
+| Teacher | `TCH-103` (nadia.farooq@institute.edu) | Zero assignments at all — use to check every empty state. |
+| Student | `STU-2001` / `STU-2002` / `STU-2003` | Same as Phase 5 (Phase 5's `PHASE_NOTES.md` git history has the details). |
+| — | Class `10-B` exists but has no teacher assigned to it | Use to test "teacher cannot access another class unless assigned." |
 
-## How this was tested
+## Testing performed
 
-Everything below was actually run against a real MySQL instance with curl, not just written and assumed to work:
+Everything below was run against a real MySQL instance with curl, not just written and assumed correct:
 
-- **Cross-student isolation:** logged in as Ali and Sara (same class) separately and confirmed each account's `/me/dashboard` and `/me/results` return completely different numbers (Ali: 85% attendance, 80.75 overall average; Sara: 80% attendance, 89 overall average) with no overlap in result IDs.
-- **Empty states:** logged in as Zara (zero results/attendance) and confirmed `attendancePercentage`/`overallAverage`/`latestResult` all come back `null`, `results`/`progress` come back as empty arrays, while `timetable` (class-wide, not personal) still correctly returns data. Frontend empty-state components render for each of these.
-- **Unauthorized access → 403:** a teacher's session cookie hitting `/api/students/me/dashboard` returns 403 with a clear message.
-- **No session → 401:** the same request with no cookie at all returns 401 (distinct from the 403 case — authenticated-but-wrong-role vs. not-authenticated-at-all).
-- **Position/rank calculation:** manually cross-checked Ali's and Sara's marks against the returned `position` values for every subject/month combination — all correct.
-- **Attendance percentage math:** manually verified against the seeded present/absent/leave counts.
-- **Change password:** wrong current password → 401; new password under 8 characters → 400 validation error; correct change → 200, followed by successfully logging in with the new password.
-- **Month filter on Results:** confirmed `?month=2026-05` returns only that month's rows.
-- **All 8 endpoints** were exercised individually via curl in addition to the above.
-- **Regression check:** re-ran the full Phase 3 auth test matrix (login, wrong role, wrong password, logout, `/me`) after building this phase — identical results, no regressions.
-- `npm run build` completed with zero errors (one non-blocking warning about `recharts` pushing the JS bundle over 500kB — worth revisiting with code-splitting in Phase 8, not a correctness issue).
+- **Dashboard stats correctness:** Ayesha's dashboard showed exactly 1 assigned class, 3 total students, 2 pending result uploads — all manually cross-checked against the seed data. Nadia's (no assignments) came back all zeros with no errors.
+- **Roster view:** confirmed it lists every student in the selected class, correctly merging in existing results (marks/grade/status) for students who have one and showing blanks for those who don't.
+- **Grade auto-calculation:** confirmed via direct SQL that `grade` is computed correctly against the documented scale (91→A+, 82→A, 74→B+, etc.) after fixing a real bug (below).
+- **Validation:** marks exceeding total marks → 400; negative marks → 400; duplicate result (same student/subject/month) → 409 with a clear message.
+- **Cross-teacher isolation:** Bilal was blocked (403) from editing/deleting a result, assignment, and lecture material created by Ayesha, even though both teach the same class.
+- **Cross-class isolation:** Ayesha was blocked (403) from creating a result for class 10-B, which she isn't assigned to.
+- **Approved-result lock:** editing/deleting an already-`approved` result returns 409, not a silent success.
+- **Cross-role rejection:** a student's session hitting any `/api/teachers/*` route returns 403; no session at all returns 401 (verified as two distinct cases, not conflated).
+- **Student-side scoping:** confirmed `/api/students/me/assignments` and `/api/students/me/lecture-materials` return content from *both* of a class's teachers (Ayesha's and Bilal's), correctly aggregated by class rather than by teacher.
+- **Phase 5 regression:** re-verified that Ali's dashboard/results/overall-average reflect *only* approved results — the 2 pending June results created in this phase's seed data are correctly invisible to students, and the overall average (80.75%) matches the pre-Phase-6 calculation exactly.
+- **Full Phase 3 auth regression:** login, wrong role, logout all re-confirmed unchanged.
+- `npm run build` completed with zero errors (same pre-existing, non-blocking `recharts` bundle-size warning as previous phases).
 
-## How to test this yourself
+### Bugs caught and fixed during this process
 
-```bash
-cd server
-cp .env.example .env    # fill in your MySQL credentials if you haven't already
-npm install
-node seed/seed.js        # re-run this even if you seeded before -- picks up Attendance + guardianPhone
-npm run dev
-
-# separate terminal
-cd client
-npm install
-npm run dev
-```
-
-Log in as `STU-2001` (`Password123!`) and click through every sidebar item — Dashboard, Results (try the month picker), Progress (charts should render), Timetable (today's row should be tinted), Paper Schedule, Announcements, Profile (try changing the password, then log out and back in with the new one). Then log in as `STU-2003` to see the empty states instead.
+1. **Alias collision:** `Teacher.js` already had a `hasMany(TeacherAssignment, { as: 'assignments' })` association from Phase 2. Adding `hasMany(Assignment, { as: 'assignments' })` for the new model collided with it — Sequelize refused to start with a clear `AssociationError`. Fixed by aliasing the new one `homeworkAssignments`.
+2. **Grade silently null:** the `beforeSave` hook that computes `grade` never fired for any seeded result. Root cause: Sequelize's `bulkCreate()` skips model hooks by default unless `{ individualHooks: true }` is passed — `seed.js` used plain `bulkCreate()`. Confirmed via direct SQL query showing every row's `grade` as `NULL`, fixed by adding the option, re-verified all grades compute correctly afterward. (The actual API-driven create/update path was never affected — `Model.create()` and `instance.save()` always run hooks; this was purely a seed-script issue.)
 
 ## Integration instructions
 
 ```bash
 cd /path/to/your/local/institute-management-portal
 git status                              # make sure your working tree is clean
-git am /path/to/phase5-student-portal.patch
-cd server && npm install && node seed/seed.js    # new Attendance table + guardianPhone column
+git am /path/to/phase6-teacher-portal.patch
+cd server && npm install && node seed/seed.js    # new Result columns + Assignment table
 cd ../client && npm install
 git push
 ```
 
-If `git am` conflicts, abort it (`git am --abort`) and copy these paths from the extracted zip into your repo instead:
+If `git am` conflicts, abort it (`git am --abort`) and copy these paths from the extracted zip instead, overwriting where they already exist: every file listed under "New files" above, plus every file listed under "Modified files." Then:
 
-```
-server/models/Attendance.js                (new)
-server/middleware/loadStudent.js           (new)
-server/controllers/studentController.js    (new)
-server/routes/studentRoutes.js             (new)
-server/models/Student.js                   (replace)
-server/models/Class.js                     (replace)
-server/routes/index.js                     (replace)
-server/seed/seed.js                        (replace)
-client/src/hooks/useFetch.js                (new)
-client/src/components/common/              (new folder, 4 files)
-client/src/pages/student/                  (replace all 7 files)
-client/src/App.jsx                          (replace)
-client/src/constants/sidebarLinks.js        (replace)
-README.md                                   (replace)
-```
-
-Then:
 ```bash
 git add -A
-git commit -m "Phase 5: Add Student Portal"
+git commit -m "Phase 6: Add Teacher Portal"
 git push
 ```

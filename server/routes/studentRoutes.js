@@ -33,5 +33,7 @@ router.get('/me/progress', ctrl.getProgress);
 router.get('/me/timetable', ctrl.getTimetable);
 router.get('/me/paper-schedule', ctrl.getPaperSchedule);
 router.get('/me/announcements', ctrl.getAnnouncements);
+router.get('/me/assignments', ctrl.getAssignments); // Phase 6
+router.get('/me/lecture-materials', ctrl.getLectureMaterials); // Phase 6
 
 module.exports = router;

@@ -10,12 +10,18 @@ export const studentSidebarLinks = [
   { label: 'Profile', path: '/student/profile' },
 ];
 
+// Phase 6 replaced the original file-upload-based Teacher Portal (Upload
+// Results/Upload Lecture Units/Upload Monthly Paper/My Classes) with a
+// CRUD-based one per the detailed Phase 6 spec -- results are entered
+// directly per-student rather than uploaded as a file, and "My Classes" is
+// folded into the Results page's class/subject selector + the Dashboard.
 export const teacherSidebarLinks = [
   { label: 'Dashboard', path: '/teacher/dashboard' },
-  { label: 'Upload Results', path: '/teacher/upload-results' },
-  { label: 'Upload Lecture Units', path: '/teacher/upload-lecture-units' },
-  { label: 'Upload Monthly Paper', path: '/teacher/upload-monthly-paper' },
-  { label: 'My Classes', path: '/teacher/classes' },
+  { label: 'Results', path: '/teacher/results' },
+  { label: 'Assignments', path: '/teacher/assignments' },
+  { label: 'Lecture Materials', path: '/teacher/lecture-materials' },
+  { label: 'Timetable', path: '/teacher/timetable' },
+  { label: 'Announcements', path: '/teacher/announcements' },
   { label: 'Profile', path: '/teacher/profile' },
 ];
 

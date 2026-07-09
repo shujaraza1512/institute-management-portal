@@ -6,7 +6,7 @@ A role-based web portal for an educational institute, with three roles: **Studen
 
 ---
 
-## Project status: Phase 5 — Student Portal ✅
+## Project status: Phase 6 — Teacher Portal ✅
 
 ### Roadmap
 
@@ -14,8 +14,8 @@ A role-based web portal for an educational institute, with three roles: **Studen
 - [x] **Phase 2 — Database schema**
 - [x] **Phase 3 — Authentication & RBAC**
 - [x] **Phase 4 — Public UI / Home Page**
-- [x] **Phase 5 — Student Portal** *(this delivery — see `PHASE_NOTES.md`)*
-- [ ] **Phase 6 — Teacher portal** (Upload Results, Upload Lecture Units, Upload Monthly Paper, My Classes)
+- [x] **Phase 5 — Student Portal**
+- [x] **Phase 6 — Teacher Portal** *(this delivery — see `PHASE_NOTES.md`)*
 - [ ] **Phase 7 — Examination Board portal** (Management pages, Approvals, Final Result Publishing, Announcements, Reports)
 - [ ] **Phase 8 — Integration, polish, and review**
 
@@ -122,6 +122,18 @@ Two small, deliberate schema additions were needed to satisfy requirements the P
 
 ---
 
+## Teacher Portal (Phase 6)
+
+A significant redesign from the original file-upload-based spec: the detailed Phase 6 requirements replaced "upload a results file" with direct per-student result entry (add/edit/delete, grade and percentage computed automatically), and split "uploads" into two distinct entities — **Assignments** (title, description, due date, optional attachment) and **Lecture Materials** (file or external link). Both get full CRUD, scoped so a teacher only ever touches their own classes/subjects and their own records — enforced server-side, not just hidden in the UI.
+
+This required real schema changes on top of Phase 2/5: `Result` gained a `status` (pending/approved/rejected) and `createdBy` field — student-facing queries (Phase 5) now only ever read `status: 'approved'` rows, which is what keeps the original "teacher cannot publish directly" rule intact even though results are entered directly now rather than uploaded as a file. A new `Assignment` model was added, and `LectureUnit` was expanded with `description` and `externalLink`. Full rationale in `PHASE_NOTES.md`.
+
+Uploaded files (assignment attachments, lecture materials) are served through an authenticated, class-scoped download route rather than a public static folder — the previous blanket `express.static('uploads')` mount would have let anyone with a URL download a file with no login at all, which doesn't hold up once real uploads exist.
+
+---
+
+## Design tokens (blue & white theme)
+
 Defined in `client/tailwind.config.js`, so every future page pulls from the same palette instead of ad-hoc colors:
 
 | Token | Value | Use |
@@ -155,4 +167,4 @@ npm install
 npm run dev               # http://localhost:5173
 ```
 
-The public Home page (`/`), Login page (`/login`), and the entire Student Portal (`/student/*`) are fully built and backed by real data. Teacher and Admin dashboards (`/teacher`, `/admin`) still render placeholder content confirming navigation, auth, and styling all work correctly — those portals arrive in Phases 6–7.
+The public Home page (`/`), Login page (`/login`), the entire Student Portal (`/student/*`), and the entire Teacher Portal (`/teacher/*`) are fully built and backed by real data. The Admin dashboard (`/admin`) still renders placeholder content confirming navigation, auth, and styling all work correctly — that portal arrives in Phase 7.

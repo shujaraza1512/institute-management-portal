@@ -18,8 +18,11 @@ if (config.nodeEnv === 'development') {
   app.use(morgan('dev'));
 }
 
-// Serves uploaded lecture notes / result sheets / papers back to the client.
-app.use('/uploads', express.static('uploads'));
+// Uploaded files (assignment attachments, lecture materials) are served
+// through an authenticated, class-scoped route (see routes/downloadRoutes.js)
+// rather than express.static -- a plain static mount would let anyone who
+// guesses/finds a URL download a file with no login or class check at all,
+// which doesn't hold up once real uploads exist (added in Phase 6).
 
 // --- API routes ---
 app.use('/api', routes);
