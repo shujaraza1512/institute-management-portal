@@ -37,6 +37,15 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING, // 'YYYY-MM'
         allowNull: false,
       },
+      // Added in Phase 7.5's teacher submission form. A student can now
+      // legitimately have more than one result for the same subject+month
+      // (e.g. both an "Assessment 1" and a "Monthly Test" in April) -- see
+      // the widened unique index below, which is the direct consequence.
+      examType: {
+        type: DataTypes.ENUM('Assessment 1', 'Assessment 2', 'Monthly Test', 'Module Test', 'Mock Exam', 'Final Exam', 'Other'),
+        allowNull: false,
+        defaultValue: 'Monthly Test', // keeps every pre-Phase-7.5 row (and any caller that omits it) valid
+      },
       // Added in Phase 6. Lets student-facing queries show only published
       // results, and lets a teacher's own pending submissions be counted
       // and listed distinctly from what's already visible to students.
@@ -48,6 +57,11 @@ module.exports = (sequelize, DataTypes) => {
       // Added in Phase 6. Who created/last-owns this row -- what makes
       // "a teacher cannot edit another teacher's result" enforceable.
       createdBy: { type: DataTypes.INTEGER },
+      // Added in Phase 7 -- who on the Examination Board approved/rejected
+      // this, when, and (for a rejection) why.
+      reviewedBy: { type: DataTypes.INTEGER },
+      reviewedAt: { type: DataTypes.DATE },
+      rejectionReason: { type: DataTypes.TEXT },
       // Traces which approved TeacherUpload this row came from, if any
       // (legacy file-upload path from Phase 2 -- not used by Phase 6's
       // direct-entry flow, kept for any row created that way).
@@ -66,7 +80,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       tableName: 'results',
-      indexes: [{ unique: true, fields: ['studentId', 'subjectId', 'month'] }],
+      indexes: [{ unique: true, fields: ['studentId', 'subjectId', 'month', 'examType'] }],
       hooks: {
         beforeSave: (result) => {
           if (result.marks != null && result.totalMarks != null) {
@@ -83,6 +97,7 @@ module.exports = (sequelize, DataTypes) => {
     Result.belongsTo(models.Class, { foreignKey: 'classId', as: 'class' });
     Result.belongsTo(models.TeacherUpload, { foreignKey: 'sourceUploadId', as: 'sourceUpload' });
     Result.belongsTo(models.User, { foreignKey: 'createdBy', as: 'creator' });
+    Result.belongsTo(models.User, { foreignKey: 'reviewedBy', as: 'reviewer' });
   };
 
   Result.calculateGrade = calculateGrade;

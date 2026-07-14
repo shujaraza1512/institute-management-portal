@@ -16,6 +16,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      // Added in Phase 7 for Class Management -- the homeroom/class teacher,
+      // distinct from TeacherAssignment (which teachers teach which subject).
+      classTeacherId: {
+        type: DataTypes.INTEGER,
+      },
     },
     {
       tableName: 'classes',
@@ -24,6 +29,7 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   Class.associate = (models) => {
+    Class.belongsTo(models.Teacher, { foreignKey: 'classTeacherId', as: 'classTeacher' });
     Class.hasMany(models.Student, { foreignKey: 'classId', as: 'students' });
     Class.hasMany(models.TeacherAssignment, { foreignKey: 'classId', as: 'teacherAssignments' });
     Class.hasMany(models.Timetable, { foreignKey: 'classId', as: 'timetableEntries' });

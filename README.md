@@ -6,7 +6,7 @@ A role-based web portal for an educational institute, with three roles: **Studen
 
 ---
 
-## Project status: Phase 6 — Teacher Portal ✅
+## Project status: Phase 7.5 — Teacher Result Workflow Complete ✅
 
 ### Roadmap
 
@@ -15,8 +15,10 @@ A role-based web portal for an educational institute, with three roles: **Studen
 - [x] **Phase 3 — Authentication & RBAC**
 - [x] **Phase 4 — Public UI / Home Page**
 - [x] **Phase 5 — Student Portal**
-- [x] **Phase 6 — Teacher Portal** *(this delivery — see `PHASE_NOTES.md`)*
-- [ ] **Phase 7 — Examination Board portal** (Management pages, Approvals, Final Result Publishing, Announcements, Reports)
+- [x] **Phase 6 — Teacher Portal**
+- [x] **Phase 7 — Examination Board (Admin) Portal**
+- [x] **Phase 7.5 — Functional Completion**
+- [x] **Phase 7.5 — Teacher Result Workflow Fix** *(this delivery — see `PHASE_NOTES.md`)*
 - [ ] **Phase 8 — Integration, polish, and review**
 
 > **Continuing this project in a new chat:** this coding environment resets between separate conversations. Keep this project in a git repo and upload it back (or share the repo URL again) when you're ready for the next phase, so Claude can build on the actual code instead of starting over. Each phase's `PHASE_NOTES.md` (see project root) documents exactly what changed, so you don't have to rely on chat history to remember.
@@ -132,6 +134,32 @@ Uploaded files (assignment attachments, lecture materials) are served through an
 
 ---
 
+## Examination Board / Admin Portal (Phase 7)
+
+Full institute-wide management: Result Approval (the central workflow — nothing a teacher enters is visible to a student until approved here), Student Management, Teacher Management (with a subject/class assignment checklist), Class Management, Subject Management, Announcement Management (with publish/expiry scheduling), Timetable Management (with double-booking prevention), Paper Schedule Management, and a dedicated per-student detailed report with charts and a print view.
+
+Unlike Phases 5/6, admin routes have no `loadX` scoping middleware — by spec, the Examination Board has full institute-wide access, not access scoped to "its own" records.
+
+Six schema additions were needed to support fields the detailed spec asked for that didn't exist yet (`guardianName`/`admissionDate` on Student, `qualification` on Teacher, `classTeacherId` on Class, `examName` on PaperSchedule, `publishAt`/`expiryDate` on Announcement, `reviewedBy`/`reviewedAt`/`rejectionReason` on Result), plus one genuine bug fix carried over from Phase 2: deleting a Student/Teacher was throwing a foreign-key error, because MySQL/Sequelize only generates an `ON DELETE CASCADE` constraint from the side that owns the foreign key column, not the side it was set on. Full detail in `PHASE_NOTES.md`.
+
+---
+
+## Phase 7.5 — Functional Completion
+
+Closed four gaps left after Phase 7: the Student Portal had no page for Assignments or Lecture Materials even though the backend endpoints existed since Phase 6; the Teacher Portal's Results page showed a status badge but never the rejection reason behind it; the Examination Board's Student Report was missing teacher remarks, approval history, and a day-by-day attendance log; and the Student Dashboard didn't surface recent assignments/materials. All four are now real, API-backed pages/sections — no dummy data anywhere.
+
+The full **Teacher → Examination Board → Student** result lifecycle was verified end to end, including the resubmit path: a teacher submits a result (pending) → admin rejects it with a reason → teacher sees the reason and edits it (status returns to pending automatically) → admin approves it → the student sees it for the first time, with the final edited marks. Full test transcript in `PHASE_NOTES.md`.
+
+---
+
+## Phase 7.5 — Teacher Result Workflow Fix
+
+Replaced the Teacher Portal's class/subject/month roster browser with the workflow the spec actually asked for: a **Result Submission Form** (pick a student — class, roll number, and Institute ID auto-fill — pick a subject, exam type, month, marks, remarks) sitting above a **Submitted Results Table** listing every result that teacher has ever personally submitted, across every class/subject/exam type, with live status badges and full approval/rejection detail (who reviewed it, when, and why if rejected) shown directly in the table. Approved rows are visibly locked (🔒) rather than just quietly non-editable.
+
+This required one genuinely necessary schema change: **Exam Type** (Assessment 1, Assessment 2, Monthly Test, Module Test, Mock Exam, Final Exam, Other) is now a real column on `Result`, and the table's uniqueness constraint was widened from `(studentId, subjectId, month)` to `(studentId, subjectId, month, examType)` — without that, a student's legitimate "Assessment 1" and "Monthly Test" in the same month would have collided as duplicates. Class-rank calculations were updated to match, so a Mock Exam score is never compared against a Monthly Test score as if they were the same assessment. Full rationale, and the two complete end-to-end workflow runs (approve path and reject→resubmit→approve path) that were used to verify this, are in `PHASE_NOTES.md`.
+
+---
+
 ## Design tokens (blue & white theme)
 
 Defined in `client/tailwind.config.js`, so every future page pulls from the same palette instead of ad-hoc colors:
@@ -167,4 +195,4 @@ npm install
 npm run dev               # http://localhost:5173
 ```
 
-The public Home page (`/`), Login page (`/login`), the entire Student Portal (`/student/*`), and the entire Teacher Portal (`/teacher/*`) are fully built and backed by real data. The Admin dashboard (`/admin`) still renders placeholder content confirming navigation, auth, and styling all work correctly — that portal arrives in Phase 7.
+The public Home page (`/`), Login page (`/login`), and all three portals — Student (`/student/*`), Teacher (`/teacher/*`), and Examination Board (`/admin/*`) — are fully built and backed by real data. There's nothing left running as a placeholder.

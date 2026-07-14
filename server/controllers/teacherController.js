@@ -35,7 +35,11 @@ const getDashboard = async (req, res, next) => {
     });
 
     const recentAnnouncements = await db.Announcement.findAll({
-      where: { audience: { [Op.in]: ['all', 'teachers'] } },
+      where: {
+        audience: { [Op.in]: ['all', 'teachers'] },
+        publishAt: { [Op.lte]: new Date() },
+        [Op.or]: [{ expiryDate: null }, { expiryDate: { [Op.gte]: new Date() } }],
+      },
       order: [['createdAt', 'DESC']],
       limit: 5,
     });
@@ -153,8 +157,13 @@ const getTimetable = async (req, res, next) => {
 // --- Announcements ---------------------------------------------------------------
 const getAnnouncements = async (req, res, next) => {
   try {
+    const now = new Date();
     const announcements = await db.Announcement.findAll({
-      where: { audience: { [Op.in]: ['all', 'teachers'] } },
+      where: {
+        audience: { [Op.in]: ['all', 'teachers'] },
+        publishAt: { [Op.lte]: now },
+        [Op.or]: [{ expiryDate: null }, { expiryDate: { [Op.gte]: now } }],
+      },
       order: [['createdAt', 'DESC']],
     });
 
@@ -194,6 +203,48 @@ const getAssignedClasses = async (req, res, next) => {
   }
 };
 
+// --- Students across assigned classes (Phase 7.5) -------------------------------------------------
+// Data source for the new Result Submission Form's Student dropdown: every
+// student in every class this teacher is assigned to, regardless of
+// subject (the Subject dropdown is a separate, class-scoped choice on the
+// frontend, cross-referenced against getAssignedClasses above).
+const getMyStudents = async (req, res, next) => {
+  try {
+    const assignments = await db.TeacherAssignment.findAll({
+      where: { teacherId: req.teacher.id },
+      attributes: ['classId'],
+    });
+    const classIds = Array.from(new Set(assignments.map((a) => a.classId)));
+
+    if (!classIds.length) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const students = await db.Student.findAll({
+      where: { classId: { [Op.in]: classIds } },
+      include: [
+        { model: db.User, as: 'user' },
+        { model: db.Class, as: 'class' },
+      ],
+      order: [['rollNumber', 'ASC']],
+    });
+
+    res.json({
+      success: true,
+      data: students.map((s) => ({
+        id: s.id,
+        name: s.user.name,
+        rollNumber: s.rollNumber,
+        instituteId: s.user.instituteId,
+        classId: s.classId,
+        className: `${s.class.name}-${s.class.section}`,
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getDashboard,
   getProfile,
@@ -201,4 +252,5 @@ module.exports = {
   getTimetable,
   getAnnouncements,
   getAssignedClasses,
+  getMyStudents,
 };

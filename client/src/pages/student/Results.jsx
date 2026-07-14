@@ -44,6 +44,7 @@ function Results() {
             <thead>
               <tr className="text-left text-muted border-b border-navy-100">
                 <th className="px-4 py-3">Subject</th>
+                <th className="px-4 py-3">Exam Type</th>
                 <th className="px-4 py-3">Marks</th>
                 <th className="px-4 py-3">Grade</th>
                 <th className="px-4 py-3">Percentage</th>
@@ -56,6 +57,7 @@ function Results() {
               {data.map((r) => (
                 <tr key={r.id} className="border-b border-navy-50 last:border-0">
                   <td className="px-4 py-3">{r.subject}</td>
+                  <td className="px-4 py-3">{r.examType}</td>
                   <td className="px-4 py-3">{r.marks}/{r.totalMarks}</td>
                   <td className="px-4 py-3">{r.grade || '—'}</td>
                   <td className="px-4 py-3">{r.percentage}%</td>

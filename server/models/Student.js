@@ -17,6 +17,9 @@ module.exports = (sequelize, DataTypes) => {
       photoUrl: { type: DataTypes.STRING },
       // Added in Phase 5 for the Profile page's "Parent Contact" field.
       guardianPhone: { type: DataTypes.STRING },
+      // Added in Phase 7 for Student Management / Student Detailed Report.
+      guardianName: { type: DataTypes.STRING },
+      admissionDate: { type: DataTypes.DATEONLY },
     },
     {
       tableName: 'students',
@@ -25,7 +28,7 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   Student.associate = (models) => {
-    Student.belongsTo(models.User, { foreignKey: 'userId', as: 'user' });
+    Student.belongsTo(models.User, { foreignKey: 'userId', as: 'user', onDelete: 'CASCADE' });
     Student.belongsTo(models.Class, { foreignKey: 'classId', as: 'class' });
     Student.hasMany(models.Result, { foreignKey: 'studentId', as: 'results' });
     Student.hasMany(models.Attendance, { foreignKey: 'studentId', as: 'attendanceRecords' });

@@ -5,6 +5,8 @@ export const studentSidebarLinks = [
   { label: 'Results', path: '/student/results' },
   { label: 'Progress', path: '/student/progress' },
   { label: 'Timetable', path: '/student/timetable' },
+  { label: 'Assignments', path: '/student/assignments' },
+  { label: 'Lecture Materials', path: '/student/lecture-materials' },
   { label: 'Paper Schedule', path: '/student/paper-schedule' },
   { label: 'Announcements', path: '/student/announcements' },
   { label: 'Profile', path: '/student/profile' },
@@ -25,15 +27,23 @@ export const teacherSidebarLinks = [
   { label: 'Profile', path: '/teacher/profile' },
 ];
 
+// Phase 7 replaced the original placeholder nav (which included "Upload
+// Final Results" and "Settings" -- neither built per the detailed Phase 7
+// spec) with the actual page set: Result Approval is the real workflow
+// name for what the spec called "Upload Final Results"/"Approve Teacher
+// Uploads" (they're the same screen once results are entered directly
+// rather than uploaded, matching Phase 6's redesign); Student Reports links
+// to the detailed report from within Student Management instead of a
+// separate top-level nav item, since it's accessed per-student, not browsed
+// on its own.
 export const adminSidebarLinks = [
   { label: 'Dashboard', path: '/admin/dashboard' },
+  { label: 'Result Approval', path: '/admin/results' },
   { label: 'Manage Students', path: '/admin/students' },
   { label: 'Manage Teachers', path: '/admin/teachers' },
-  { label: 'Manage Subjects', path: '/admin/subjects' },
   { label: 'Manage Classes', path: '/admin/classes' },
-  { label: 'Upload Final Results', path: '/admin/final-results' },
-  { label: 'Approve Teacher Uploads', path: '/admin/approvals' },
+  { label: 'Manage Subjects', path: '/admin/subjects' },
   { label: 'Announcements', path: '/admin/announcements' },
-  { label: 'Reports', path: '/admin/reports' },
-  { label: 'Settings', path: '/admin/settings' },
+  { label: 'Timetable', path: '/admin/timetable' },
+  { label: 'Paper Schedule', path: '/admin/paper-schedules' },
 ];

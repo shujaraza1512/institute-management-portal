@@ -12,6 +12,12 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: 'all',
       },
       postedBy: { type: DataTypes.INTEGER }, // Users.id — nullable for system-generated notices
+      // Added in Phase 7. publishAt defaults to "now" so every existing/new
+      // announcement is immediately active unless explicitly scheduled for
+      // later; expiryDate is nullable (never expires if unset). "Active" =
+      // publishAt <= now AND (expiryDate is null OR expiryDate >= now).
+      publishAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
+      expiryDate: { type: DataTypes.DATE },
     },
     { tableName: 'announcements' }
   );

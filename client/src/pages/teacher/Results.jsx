@@ -1,79 +1,95 @@
 import { useMemo, useState } from 'react';
-import { Users } from 'lucide-react';
+import { Lock, Users } from 'lucide-react';
 import useFetch from '../../hooks/useFetch';
 import api from '../../services/api';
 import LoadingState from '../../components/common/LoadingState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import EmptyState from '../../components/common/EmptyState.jsx';
-import ClassSubjectFields from '../../components/teacher/ClassSubjectFields.jsx';
 import StatusBadge from '../../components/teacher/StatusBadge.jsx';
+
+const EXAM_TYPES = ['Assessment 1', 'Assessment 2', 'Monthly Test', 'Module Test', 'Mock Exam', 'Final Exam', 'Other'];
+
+const emptyForm = {
+  studentId: '',
+  subjectId: '',
+  examType: 'Monthly Test',
+  month: '',
+  totalMarks: '100',
+  marks: '',
+  teacherRemarks: '',
+};
+
+const formatDate = (iso) => (iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
 
 function Results() {
   const { data: classes, loading: classesLoading, error: classesError } = useFetch('/teachers/me/classes');
+  const { data: students, loading: studentsLoading, error: studentsError } = useFetch('/teachers/me/students');
+  const { data: submitted, loading: submittedLoading, error: submittedError, refetch: refetchSubmitted } = useFetch('/teachers/me/results');
 
-  const [classId, setClassId] = useState('');
-  const [subjectId, setSubjectId] = useState('');
-  const [month, setMonth] = useState('');
-
-  const rosterEndpoint = useMemo(
-    () => (classId && subjectId && month ? `/teachers/me/results?classId=${classId}&subjectId=${subjectId}&month=${month}` : null),
-    [classId, subjectId, month]
-  );
-
-  const { data: roster, loading: rosterLoading, error: rosterError, refetch: refetchRoster } = useFetch(rosterEndpoint);
-
-  const [editingId, setEditingId] = useState(null); // studentId currently being edited
-  const [form, setForm] = useState({ marks: '', totalMarks: '100', teacherRemarks: '' });
+  // --- Submission form state -------------------------------------------------------------------
+  const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState('');
+  const [formSuccess, setFormSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const startEdit = (row) => {
-    setEditingId(row.studentId);
-    setForm({
-      marks: row.marks ?? '',
-      totalMarks: row.totalMarks ?? '100',
-      teacherRemarks: row.teacherRemarks ?? '',
-    });
-    setFormError('');
+  const selectedStudent = useMemo(
+    () => (students ? students.find((s) => String(s.id) === String(form.studentId)) : null),
+    [students, form.studentId]
+  );
+
+  const subjectOptions = useMemo(() => {
+    if (!classes || !selectedStudent) return [];
+    const cls = classes.find((c) => c.classId === selectedStudent.classId);
+    return cls ? cls.subjects : [];
+  }, [classes, selectedStudent]);
+
+  const livePercentage = useMemo(() => {
+    const m = parseFloat(form.marks);
+    const t = parseFloat(form.totalMarks);
+    if (Number.isNaN(m) || Number.isNaN(t) || t <= 0) return null;
+    return Math.round((m / t) * 10000) / 100;
+  }, [form.marks, form.totalMarks]);
+
+  const handleStudentChange = (studentId) => {
+    // Changing the student invalidates whatever subject was picked for the
+    // previous student's class -- start that choice over rather than
+    // silently submitting a mismatched class/subject pair.
+    setForm({ ...form, studentId, subjectId: '' });
   };
 
-  const cancelEdit = () => {
-    setEditingId(null);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setFormError('');
-  };
+    setFormSuccess('');
 
-  const saveRow = async (row) => {
-    setFormError('');
+    if (!form.studentId || !form.subjectId || !form.month) {
+      setFormError('Student, subject, and month are all required.');
+      return;
+    }
     if (form.marks === '' || Number(form.marks) < 0) {
       setFormError('Enter a valid, non-negative mark.');
       return;
     }
     if (Number(form.marks) > Number(form.totalMarks)) {
-      setFormError('Marks cannot exceed total marks.');
+      setFormError('Obtained marks cannot exceed total marks.');
       return;
     }
 
     setSubmitting(true);
     try {
-      if (row.resultId) {
-        await api.put(`/teachers/me/results/${row.resultId}`, {
-          marks: Number(form.marks),
-          totalMarks: Number(form.totalMarks),
-          teacherRemarks: form.teacherRemarks,
-        });
-      } else {
-        await api.post('/teachers/me/results', {
-          studentId: row.studentId,
-          classId: Number(classId),
-          subjectId: Number(subjectId),
-          month,
-          marks: Number(form.marks),
-          totalMarks: Number(form.totalMarks),
-          teacherRemarks: form.teacherRemarks,
-        });
-      }
-      setEditingId(null);
-      refetchRoster();
+      const res = await api.post('/teachers/me/results', {
+        studentId: Number(form.studentId),
+        classId: selectedStudent.classId,
+        subjectId: Number(form.subjectId),
+        month: form.month,
+        examType: form.examType,
+        marks: Number(form.marks),
+        totalMarks: Number(form.totalMarks),
+        teacherRemarks: form.teacherRemarks,
+      });
+      setFormSuccess(res.data.message);
+      setForm(emptyForm);
+      refetchSubmitted();
     } catch (err) {
       setFormError(err.response?.data?.message || 'Something went wrong. Please try again.');
     } finally {
@@ -81,30 +97,81 @@ function Results() {
     }
   };
 
-  const deleteRow = async (row) => {
-    if (!row.resultId) return;
-    if (!window.confirm(`Delete the result for ${row.name}?`)) return;
+  // --- Submitted results table: inline edit state -------------------------------------------------------------------
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({ examType: '', marks: '', totalMarks: '', teacherRemarks: '' });
+  const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState('');
+  const [rowBusy, setRowBusy] = useState(null);
+
+  const startEdit = (row) => {
+    setEditingId(row.resultId);
+    setEditForm({ examType: row.examType, marks: row.marks, totalMarks: row.totalMarks, teacherRemarks: row.teacherRemarks || '' });
+    setEditError('');
+    setEditSuccess('');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditError('');
+  };
+
+  const saveEdit = async (row) => {
+    setEditError('');
+    if (editForm.marks === '' || Number(editForm.marks) < 0) {
+      setEditError('Enter a valid, non-negative mark.');
+      return;
+    }
+    if (Number(editForm.marks) > Number(editForm.totalMarks)) {
+      setEditError('Marks cannot exceed total marks.');
+      return;
+    }
+
+    setRowBusy(row.resultId);
     try {
-      await api.delete(`/teachers/me/results/${row.resultId}`);
-      refetchRoster();
+      const res = await api.put(`/teachers/me/results/${row.resultId}`, {
+        examType: editForm.examType,
+        marks: Number(editForm.marks),
+        totalMarks: Number(editForm.totalMarks),
+        teacherRemarks: editForm.teacherRemarks,
+      });
+      setEditingId(null);
+      setEditSuccess(res.data.message);
+      refetchSubmitted();
     } catch (err) {
-      window.alert(err.response?.data?.message || 'Could not delete this result.');
+      setEditError(err.response?.data?.message || 'Something went wrong. Please try again.');
+    } finally {
+      setRowBusy(null);
     }
   };
 
-  if (classesLoading) return <LoadingState label="Loading your classes…" />;
+  const deleteRow = async (row) => {
+    if (!window.confirm(`Delete the ${row.examType} result for ${row.studentName}?`)) return;
+    setRowBusy(row.resultId);
+    try {
+      await api.delete(`/teachers/me/results/${row.resultId}`);
+      refetchSubmitted();
+    } catch (err) {
+      window.alert(err.response?.data?.message || 'Could not delete this result.');
+    } finally {
+      setRowBusy(null);
+    }
+  };
+
+  if (classesLoading || studentsLoading) return <LoadingState label="Loading…" />;
   if (classesError) return <ErrorState message={classesError} />;
+  if (studentsError) return <ErrorState message={studentsError} />;
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-display text-navy-800">Student Result Management</h2>
         <p className="text-sm text-muted mt-1">
-          Results stay pending until the Examination Board approves them. Grade and percentage are calculated automatically.
+          Submitted results stay pending until the Examination Board reviews them. Grade and percentage are calculated automatically.
         </p>
       </div>
 
-      {classes.length === 0 ? (
+      {classes.length === 0 || students.length === 0 ? (
         <EmptyState
           icon={Users}
           title="No classes assigned yet"
@@ -112,125 +179,270 @@ function Results() {
         />
       ) : (
         <>
-          <div className="bg-white rounded-card shadow-card p-6 space-y-4">
-            <ClassSubjectFields classes={classes} classId={classId} subjectId={subjectId} onClassChange={setClassId} onSubjectChange={setSubjectId} />
+          {/* --- 1. Result Submission Form --- */}
+          <form onSubmit={handleSubmit} className="bg-white rounded-card shadow-card p-6 space-y-4">
+            <p className="font-display text-navy-800">Submit a Result</p>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-ink mb-1">Student</label>
+                <select
+                  value={form.studentId}
+                  onChange={(e) => handleStudentChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                >
+                  <option value="">Select a student</option>
+                  {students.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name} — {s.className} (Roll #{s.rollNumber})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-ink mb-1">Class</label>
+                <input type="text" readOnly value={selectedStudent ? selectedStudent.className : ''} placeholder="Auto-filled from student" className="w-full px-3 py-2 border border-navy-100 rounded-card bg-surface text-muted" />
+              </div>
+
+              <div>
+                <label className="block text-sm text-ink mb-1">Roll Number / Institute ID</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={selectedStudent ? `${selectedStudent.rollNumber} / ${selectedStudent.instituteId}` : ''}
+                  placeholder="Auto-filled from student"
+                  className="w-full px-3 py-2 border border-navy-100 rounded-card bg-surface text-muted"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-ink mb-1">Subject</label>
+                <select
+                  value={form.subjectId}
+                  onChange={(e) => setForm({ ...form, subjectId: e.target.value })}
+                  disabled={!selectedStudent}
+                  className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-surface disabled:text-muted"
+                >
+                  <option value="">{selectedStudent ? 'Select a subject' : 'Select a student first'}</option>
+                  {subjectOptions.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-ink mb-1">Exam Type</label>
+                <select
+                  value={form.examType}
+                  onChange={(e) => setForm({ ...form, examType: e.target.value })}
+                  className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                >
+                  {EXAM_TYPES.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-ink mb-1">Month</label>
+                <input
+                  type="month"
+                  value={form.month}
+                  onChange={(e) => setForm({ ...form, month: e.target.value })}
+                  className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-ink mb-1">Total Marks</label>
+                <input
+                  type="number"
+                  value={form.totalMarks}
+                  onChange={(e) => setForm({ ...form, totalMarks: e.target.value })}
+                  className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-ink mb-1">Obtained Marks</label>
+                <input
+                  type="number"
+                  value={form.marks}
+                  onChange={(e) => setForm({ ...form, marks: e.target.value })}
+                  className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-ink mb-1">Percentage</label>
+                <input type="text" readOnly value={livePercentage !== null ? `${livePercentage}%` : ''} placeholder="Auto-calculated" className="w-full px-3 py-2 border border-navy-100 rounded-card bg-surface text-muted" />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-sm text-ink mb-1">Exam Month</label>
-              <input
-                type="month"
-                value={month}
-                onChange={(e) => setMonth(e.target.value)}
-                className="w-full sm:w-48 px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+              <label className="block text-sm text-ink mb-1">Teacher Remarks</label>
+              <textarea
+                value={form.teacherRemarks}
+                onChange={(e) => setForm({ ...form, teacherRemarks: e.target.value })}
+                rows={2}
+                className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
             </div>
-          </div>
 
-          {!rosterEndpoint ? (
-            <EmptyState title="Select a class, subject, and month" description="Choose all three above to see the student roster." />
-          ) : rosterLoading ? (
-            <LoadingState label="Loading roster…" />
-          ) : rosterError ? (
-            <ErrorState message={rosterError} onRetry={refetchRoster} />
-          ) : roster.length === 0 ? (
-            <EmptyState icon={Users} title="No students in this class yet" />
-          ) : (
-            <div className="bg-white rounded-card shadow-card overflow-x-auto">
-              <table className="w-full text-sm min-w-[760px]">
-                <thead>
-                  <tr className="text-left text-muted border-b border-navy-100">
-                    <th className="px-4 py-3">Roll #</th>
-                    <th className="px-4 py-3">Student Name</th>
-                    <th className="px-4 py-3">Marks</th>
-                    <th className="px-4 py-3">Grade</th>
-                    <th className="px-4 py-3">Remarks</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {roster.map((row) => (
-                    <tr key={row.studentId} className="border-b border-navy-50 last:border-0 align-top">
-                      <td className="px-4 py-3">{row.rollNumber}</td>
-                      <td className="px-4 py-3">{row.name}</td>
-                      {editingId === row.studentId ? (
-                        <>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="number"
-                                value={form.marks}
-                                onChange={(e) => setForm({ ...form, marks: e.target.value })}
-                                className="w-16 px-2 py-1 border border-navy-100 rounded-card"
-                              />
-                              <span className="text-muted">/</span>
-                              <input
-                                type="number"
-                                value={form.totalMarks}
-                                onChange={(e) => setForm({ ...form, totalMarks: e.target.value })}
-                                className="w-16 px-2 py-1 border border-navy-100 rounded-card"
-                              />
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-muted">auto</td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="text"
-                              value={form.teacherRemarks}
-                              onChange={(e) => setForm({ ...form, teacherRemarks: e.target.value })}
-                              className="w-full px-2 py-1 border border-navy-100 rounded-card"
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <StatusBadge status={row.status} />
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex flex-col gap-1">
-                              <button
-                                onClick={() => saveRow(row)}
-                                disabled={submitting}
-                                className="text-xs px-2 py-1 bg-navy-700 text-white rounded-card hover:bg-navy-800 disabled:opacity-60"
-                              >
-                                {submitting ? 'Saving…' : 'Save'}
-                              </button>
-                              <button onClick={cancelEdit} className="text-xs text-muted hover:text-ink">
-                                Cancel
-                              </button>
-                              {formError && <p className="text-xs text-reject max-w-[10rem]">{formError}</p>}
-                            </div>
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="px-4 py-3">{row.marks !== null ? `${row.marks}/${row.totalMarks} (${row.percentage}%)` : '—'}</td>
-                          <td className="px-4 py-3">{row.grade || '—'}</td>
-                          <td className="px-4 py-3 text-muted">{row.teacherRemarks || '—'}</td>
-                          <td className="px-4 py-3">
-                            <StatusBadge status={row.status} />
-                          </td>
-                          <td className="px-4 py-3">
-                            {row.editable ? (
-                              <div className="flex gap-3">
-                                <button onClick={() => startEdit(row)} className="text-xs text-navy-700 hover:underline">
-                                  {row.resultId ? 'Edit' : 'Add'}
-                                </button>
-                                {row.resultId && (
-                                  <button onClick={() => deleteRow(row)} className="text-xs text-reject hover:underline">
-                                    Delete
-                                  </button>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted">Approved — locked</span>
-                            )}
-                          </td>
-                        </>
-                      )}
+            {formError && <p className="text-sm text-reject">{formError}</p>}
+            {formSuccess && <p className="text-sm text-approve">{formSuccess}</p>}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-5 py-2.5 bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 transition-colors disabled:opacity-60"
+            >
+              {submitting ? 'Submitting…' : 'Submit Result'}
+            </button>
+          </form>
+
+          {/* --- 2. Submitted Results Table --- */}
+          <div>
+            <p className="font-display text-navy-800 mb-3">Submitted Results</p>
+            {editSuccess && <p className="text-sm text-approve mb-3">{editSuccess}</p>}
+
+            {submittedLoading ? (
+              <LoadingState label="Loading your submitted results…" />
+            ) : submittedError ? (
+              <ErrorState message={submittedError} onRetry={refetchSubmitted} />
+            ) : submitted.length === 0 ? (
+              <EmptyState title="No results submitted yet" description="Use the form above to submit your first result." />
+            ) : (
+              <div className="bg-white rounded-card shadow-card overflow-x-auto">
+                <table className="w-full text-sm min-w-[1100px]">
+                  <thead>
+                    <tr className="text-left text-muted border-b border-navy-100">
+                      <th className="px-4 py-3">Student</th>
+                      <th className="px-4 py-3">Roll No</th>
+                      <th className="px-4 py-3">Class</th>
+                      <th className="px-4 py-3">Subject</th>
+                      <th className="px-4 py-3">Exam Type</th>
+                      <th className="px-4 py-3">Marks</th>
+                      <th className="px-4 py-3">%</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Submitted</th>
+                      <th className="px-4 py-3">Last Updated</th>
+                      <th className="px-4 py-3">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody>
+                    {submitted.map((row) => {
+                      const isEditing = editingId === row.resultId;
+                      const isApproved = row.status === 'approved';
+
+                      return (
+                        <tr key={row.resultId} className="border-b border-navy-50 last:border-0 align-top">
+                          <td className="px-4 py-3">{row.studentName}</td>
+                          <td className="px-4 py-3">{row.rollNumber}</td>
+                          <td className="px-4 py-3">{row.class}</td>
+                          <td className="px-4 py-3">{row.subject}</td>
+
+                          {isEditing ? (
+                            <>
+                              <td className="px-4 py-3">
+                                <select
+                                  value={editForm.examType}
+                                  onChange={(e) => setEditForm({ ...editForm, examType: e.target.value })}
+                                  className="px-2 py-1 border border-navy-100 rounded-card text-xs"
+                                >
+                                  {EXAM_TYPES.map((t) => (
+                                    <option key={t} value={t}>{t}</option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-1">
+                                  <input type="number" value={editForm.marks} onChange={(e) => setEditForm({ ...editForm, marks: e.target.value })} className="w-16 px-2 py-1 border border-navy-100 rounded-card" />
+                                  <span className="text-muted">/</span>
+                                  <input type="number" value={editForm.totalMarks} onChange={(e) => setEditForm({ ...editForm, totalMarks: e.target.value })} className="w-16 px-2 py-1 border border-navy-100 rounded-card" />
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-muted">auto</td>
+                              <td className="px-4 py-3">
+                                <StatusBadge status={row.status} />
+                              </td>
+                              <td className="px-4 py-3">{formatDate(row.submittedDate)}</td>
+                              <td className="px-4 py-3">{formatDate(row.lastUpdated)}</td>
+                              <td className="px-4 py-3">
+                                <div className="flex flex-col gap-1">
+                                  <input
+                                    type="text"
+                                    value={editForm.teacherRemarks}
+                                    onChange={(e) => setEditForm({ ...editForm, teacherRemarks: e.target.value })}
+                                    placeholder="Remarks"
+                                    className="w-32 px-2 py-1 border border-navy-100 rounded-card text-xs"
+                                  />
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => saveEdit(row)}
+                                      disabled={rowBusy === row.resultId}
+                                      className="text-xs px-2 py-1 bg-navy-700 text-white rounded-card hover:bg-navy-800 disabled:opacity-60"
+                                    >
+                                      {rowBusy === row.resultId ? 'Saving…' : 'Save'}
+                                    </button>
+                                    <button onClick={cancelEdit} className="text-xs text-muted hover:text-ink">Cancel</button>
+                                  </div>
+                                  {editError && <p className="text-xs text-reject max-w-[9rem]">{editError}</p>}
+                                </div>
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="px-4 py-3">{row.examType}</td>
+                              <td className="px-4 py-3">{row.marks}/{row.totalMarks}</td>
+                              <td className="px-4 py-3">{row.percentage}%</td>
+                              <td className="px-4 py-3">
+                                <StatusBadge status={row.status} />
+                                {row.status === 'approved' && (
+                                  <p className="text-xs text-muted mt-1">
+                                    Approved by: {row.reviewedBy || '—'}<br />Approved on: {formatDate(row.reviewedAt)}
+                                  </p>
+                                )}
+                                {row.status === 'rejected' && (
+                                  <div className="text-xs text-reject mt-1 max-w-[11rem]">
+                                    <p>Reason: {row.rejectionReason || '—'}</p>
+                                    <p className="text-muted">Rejected by: {row.reviewedBy || '—'}</p>
+                                    <p className="text-muted">Rejected on: {formatDate(row.reviewedAt)}</p>
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-3">{formatDate(row.submittedDate)}</td>
+                              <td className="px-4 py-3">{formatDate(row.lastUpdated)}</td>
+                              <td className="px-4 py-3">
+                                {isApproved ? (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-xs text-muted cursor-not-allowed"
+                                    title="Approved results cannot be modified."
+                                  >
+                                    <Lock className="w-3 h-3" /> Locked
+                                  </span>
+                                ) : (
+                                  <div className="flex gap-3">
+                                    <button onClick={() => startEdit(row)} className="text-xs text-navy-700 hover:underline">Edit</button>
+                                    <button
+                                      onClick={() => deleteRow(row)}
+                                      disabled={rowBusy === row.resultId}
+                                      className="text-xs text-reject hover:underline disabled:opacity-60"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>

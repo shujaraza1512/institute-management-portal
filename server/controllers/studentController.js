@@ -16,7 +16,16 @@ const getDashboard = async (req, res, next) => {
     const classId = student.classId;
     const today = new Date().toISOString().slice(0, 10);
 
-    const [assignments, upcomingExam, latestResult, announcementsCount, attendanceRows, allResults] = await Promise.all([
+    const [
+      teacherAssignments,
+      upcomingExam,
+      latestResult,
+      announcementsCount,
+      attendanceRows,
+      allResults,
+      recentHomeworkAssignments,
+      recentLectureMaterials,
+    ] = await Promise.all([
       classId ? db.TeacherAssignment.findAll({ where: { classId }, attributes: ['subjectId'] }) : [],
       classId
         ? db.PaperSchedule.findOne({
@@ -30,12 +39,36 @@ const getDashboard = async (req, res, next) => {
         order: [['month', 'DESC']],
         include: [{ model: db.Subject, as: 'subject' }],
       }),
-      db.Announcement.count({ where: { audience: { [Op.in]: ['all', 'students'] } } }),
+      db.Announcement.count({
+        where: {
+          audience: { [Op.in]: ['all', 'students'] },
+          publishAt: { [Op.lte]: new Date() },
+          [Op.or]: [{ expiryDate: null }, { expiryDate: { [Op.gte]: new Date() } }],
+        },
+      }),
       db.Attendance.findAll({ where: { studentId: student.id }, attributes: ['status'] }),
       db.Result.findAll({ where: { studentId: student.id, status: 'approved' }, attributes: ['marks', 'totalMarks'] }),
+      // Added in Phase 7.5 for the "Recent Assignments" dashboard card.
+      classId
+        ? db.Assignment.findAll({
+            where: { classId },
+            include: [{ model: db.Subject, as: 'subject' }],
+            order: [['createdAt', 'DESC']],
+            limit: 3,
+          })
+        : [],
+      // Added in Phase 7.5 for the "Recent Lecture Materials" dashboard card.
+      classId
+        ? db.LectureUnit.findAll({
+            where: { classId },
+            include: [{ model: db.Subject, as: 'subject' }],
+            order: [['createdAt', 'DESC']],
+            limit: 3,
+          })
+        : [],
     ]);
 
-    const subjectsCount = new Set(assignments.map((a) => a.subjectId)).size;
+    const subjectsCount = new Set(teacherAssignments.map((a) => a.subjectId)).size;
 
     const attendancePercentage = attendanceRows.length
       ? round2((attendanceRows.filter((a) => a.status === 'present').length / attendanceRows.length) * 100)
@@ -75,6 +108,19 @@ const getDashboard = async (req, res, next) => {
             }
           : null,
         announcementsCount,
+        // Added in Phase 7.5 -- dashboard extension, existing cards unchanged.
+        recentAssignments: recentHomeworkAssignments.map((a) => ({
+          id: a.id,
+          title: a.title,
+          subject: a.subject.name,
+          dueDate: a.dueDate,
+        })),
+        recentLectureMaterials: recentLectureMaterials.map((m) => ({
+          id: m.id,
+          title: m.title,
+          subject: m.subject.name,
+          uploadedAt: m.createdAt,
+        })),
       },
     });
   } catch (err) {
@@ -145,11 +191,12 @@ const getResults = async (req, res, next) => {
     const withPosition = await Promise.all(
       results.map(async (r) => {
         const higherCount = await db.Result.count({
-          where: { classId: r.classId, subjectId: r.subjectId, month: r.month, status: 'approved', marks: { [Op.gt]: r.marks } },
+          where: { classId: r.classId, subjectId: r.subjectId, month: r.month, examType: r.examType, status: 'approved', marks: { [Op.gt]: r.marks } },
         });
         return {
           id: r.id,
           subject: r.subject.name,
+          examType: r.examType,
           marks: r.marks,
           totalMarks: r.totalMarks,
           percentage: r.percentage,
@@ -276,8 +323,13 @@ const getPaperSchedule = async (req, res, next) => {
 // --- Announcements ---------------------------------------------------------------------
 const getAnnouncements = async (req, res, next) => {
   try {
+    const now = new Date();
     const announcements = await db.Announcement.findAll({
-      where: { audience: { [Op.in]: ['all', 'students'] } },
+      where: {
+        audience: { [Op.in]: ['all', 'students'] },
+        publishAt: { [Op.lte]: now },
+        [Op.or]: [{ expiryDate: null }, { expiryDate: { [Op.gte]: now } }],
+      },
       order: [['createdAt', 'DESC']],
     });
 
@@ -302,10 +354,14 @@ const getAssignments = async (req, res, next) => {
 
     const assignments = await db.Assignment.findAll({
       where: { classId: student.classId },
-      include: [{ model: db.Subject, as: 'subject' }],
-      order: [['dueDate', 'DESC']],
+      include: [
+        { model: db.Subject, as: 'subject' },
+        { model: db.Teacher, as: 'teacher', include: [{ model: db.User, as: 'user' }] },
+      ],
+      order: [['createdAt', 'DESC']], // newest first, per Phase 7.5 spec -- distinct from due date
     });
 
+    const today = new Date().toISOString().slice(0, 10);
     res.json({
       success: true,
       data: assignments.map((a) => ({
@@ -313,8 +369,11 @@ const getAssignments = async (req, res, next) => {
         title: a.title,
         description: a.description,
         subject: a.subject.name,
+        teacher: a.teacher.user.name,
+        postedDate: a.createdAt,
         dueDate: a.dueDate,
         hasAttachment: !!a.attachmentPath,
+        status: a.dueDate >= today ? 'active' : 'expired',
       })),
     });
   } catch (err) {
@@ -332,7 +391,10 @@ const getLectureMaterials = async (req, res, next) => {
 
     const materials = await db.LectureUnit.findAll({
       where: { classId: student.classId },
-      include: [{ model: db.Subject, as: 'subject' }],
+      include: [
+        { model: db.Subject, as: 'subject' },
+        { model: db.Teacher, as: 'teacher', include: [{ model: db.User, as: 'user' }] },
+      ],
       order: [['createdAt', 'DESC']],
     });
 
@@ -344,6 +406,7 @@ const getLectureMaterials = async (req, res, next) => {
         description: m.description,
         materialType: m.materialType,
         subject: m.subject.name,
+        teacher: m.teacher.user.name,
         hasFile: !!m.filePath,
         externalLink: m.externalLink,
         uploadedAt: m.createdAt,

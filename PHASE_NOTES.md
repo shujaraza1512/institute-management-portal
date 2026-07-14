@@ -1,170 +1,124 @@
-# Phase 6 — Teacher Portal
+# Phase 7.5 — Teacher Result Workflow Fix
 
-## A note on scope
+## What this phase is
 
-The detailed Phase 6 requirements provided for this phase differ substantially from the "upload a results file" model in the original master spec: results are now entered directly per-student (not via Excel/CSV upload), and "uploads" are split into two distinct, fully-CRUD-able entities — **Assignments** and **Lecture Materials** — rather than one generic upload type. This phase follows the detailed requirements as the source of truth. Where that meant touching Phase 2/5 files, it's called out explicitly below, along with why.
+A targeted fix, not a new portal: the Teacher Portal's Results page previously required picking a class + subject + month before seeing anything, then editing marks inline per student in a roster grid. That's a real workflow, but it isn't the one this spec asked for. This phase replaces that page's primary interaction with a **Result Submission Form** + **Submitted Results Table**, exactly as specified, while keeping every other completed feature (RBAC, models unrelated to this, all other pages) untouched.
 
-## What was added
+## The one necessary schema change
 
-- **Teacher Dashboard** — welcome card (name, Employee ID, assigned subjects/classes), 4 summary cards (Total Assigned Classes, Total Students, Today's Lectures, Pending Result Uploads), recent announcements, and quick-action links to Results/Assignments/Lecture Materials/Timetable.
-- **Student Result Management** — select Class → Subject → Exam Month, see every student in that class in a roster table (Roll Number, Name, Marks, Grade, Remarks, Status), and add/edit/delete a result inline per row. Marks/percentage/grade are validated and computed server-side — never trusted from the client.
-- **Assignments** — full CRUD (title, description, class, subject, due date, optional file attachment).
-- **Lecture Materials** — full CRUD, accepting either an uploaded file (PDF/PPT/DOC) or an external link, not both.
-- **Timetable** — the teacher's own weekly schedule across every class they teach, with today highlighted.
-- **Announcements** — read-only, audience `all` or `teachers`, newest first.
-- **Profile** — name, email, phone, Employee ID, assigned classes/subjects, plus a change-password form.
-- **Student-facing additions**: `GET /api/students/me/assignments` and `GET /api/students/me/lecture-materials` — read-only, scoped to the student's own class, satisfying "students should only see their own class's content." No new student-facing *pages* were built for these (out of scope for a phase titled Teacher Portal) — the endpoints exist and are tested; wiring them into Student Portal pages is a natural follow-up.
+Introducing **Exam Type** as a real, submittable field means a student can legitimately have more than one result for the same subject in the same month — e.g. both an "Assessment 1" and a "Monthly Test" for Computer Science in April. The Result table's uniqueness constraint was `(studentId, subjectId, month)` — three columns, no exam type. Left as-is, submitting that second, entirely legitimate result would have failed with a 409 "duplicate" error, making the Exam Type dropdown non-functional for its actual purpose.
 
-## Database changes
+**Fixed by widening the unique index to `(studentId, subjectId, month, examType)`.** This is additive (a wider index, not a narrower one) and was verified directly: the same student/subject/month with a *different* exam type now succeeds; the same student/subject/month with the *same* exam type still correctly fails with 409.
 
-**`Result` (modified):**
-- Added `status` (ENUM: `pending`/`approved`/`rejected`, default `pending`). Since results are now created directly by a teacher instead of being parsed from an approved file upload, something has to distinguish "visible to students" from "not yet reviewed" — this is that field. **Phase 5's student-facing queries were updated to filter `status: 'approved'`** (previously they had no status filter at all, since Result was defined to only ever contain approved data). This is the one real modification to already-shipped Phase 5 code, and it was necessary: without it, a teacher's freshly-entered pending marks would immediately leak to students, undoing "teacher cannot publish results directly" from the original spec.
-- Added `createdBy` (User id). What makes "a teacher cannot edit another teacher's result" and "Pending Result Uploads" (dashboard count) both concretely enforceable/computable, rather than inferred from class/subject assignment alone.
-- Added a `beforeSave` hook that recomputes `grade` from `marks`/`totalMarks` on every create/update, using a fixed scale (A+ ≥90, A ≥80, B+ ≥70, B ≥60, C ≥50, D ≥40, else F). `grade` is never accepted from client input.
-- **Business rule added**: once a result's status is `approved`, a teacher can no longer edit or delete it (409 response) — it's already been published to students.
+**One consequence of that change, also fixed:** class-rank ("position") calculations previously grouped by `(classId, subjectId, month)` only. With two exam types now possible in the same group, that would have ranked a student's Mock Exam score against another student's Monthly Test score as if they were the same assessment — a real correctness bug, not a hypothetical one. Both places this is calculated (`studentController.js`'s `getResults`, `adminStudentController.js`'s `getStudentReport`) now also scope by `examType`. The admin report's version additionally needed its position *cache key* fixed — it was keyed by `classId-subjectId-month` only, meaning a student's two different exam types in the same subject/month would have incorrectly shared one cached rank (computed from whichever row happened to be processed first). Caught by reasoning through the code before it was tested, not caught by a failing test.
 
-**`Assignment` (new):** `teacherId`, `classId`, `subjectId`, `title`, `description`, `dueDate`, `attachmentPath` (nullable).
+No other schema or API contract changed. The old class/subject/month roster query still works exactly as it did in Phase 6 — nothing was removed, only a second mode was added behind the same endpoint (see below).
 
-**`LectureUnit` (modified):** added `description` and `externalLink`; `filePath` is now nullable (a material is either a file or a link, validated in the controller). The `assignment` value was removed from the `materialType` enum, now `pdf`/`notes`/`slides`/`link`, since Assignments are their own model.
+## 1. Result Submission Form
 
-**Not used by this phase:** `TeacherUpload` (the Phase 2 file-based upload concept) remains in the schema untouched but nothing in Phase 6 creates new rows there — it's superseded by direct Result entry for this phase's scope.
+At the top of the Teacher Results page: **Student** (dropdown, populated only from students in the teacher's assigned classes), with **Class** and **Roll Number / Institute ID** auto-filling as read-only fields the moment a student is selected. **Subject** is a separate dropdown that only shows subjects the teacher is assigned to teach *that student's specific class* — selecting a different student resets this choice, so it's never possible to submit a mismatched class/subject pair from the UI. **Exam Type** (the 7 specified values), **Month**, **Total Marks**, **Obtained Marks**, a live-computed **Percentage** (calculated in the browser as you type, matching the same math the backend's stored `percentage` virtual field would produce — not persisted separately), and **Teacher Remarks**.
 
-**One important operational note:** `server.js` calls `sequelize.sync()` (no `alter`), which only creates missing tables — it will **not** add the new columns above to an already-existing database. As with Phase 5's `guardianPhone` addition, run `node seed/seed.js` after integrating to pick up the schema changes (this project is still at the seed-data stage, so this is a non-issue in practice).
+On submit: creates the result via the same `createResult` logic Phase 6 already had (assignment verification, mark validation, `status: pending`), now also carrying `examType`. Success shows the exact required message: *"Result submitted successfully. Waiting for Examination Board approval."*
 
-## API endpoints
+## 2. Submitted Results Table
 
-All under `/api/teachers`, requiring `protect` + `authorize('teacher')` + `loadTeacher` (resolves `req.teacher` from the session — no route accepts a `teacherId` from the client):
+Below the form: every result the logged-in teacher has ever personally submitted — across all their classes, subjects, and exam types, newest first. Columns exactly as specified: Student, Roll No, Class, Subject, Exam Type, Marks, Percentage, Status, Submitted Date, Last Updated, Actions.
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| GET | `/me/dashboard` | Dashboard summary |
-| GET | `/me/profile` | Profile info |
-| PUT | `/me/password` | Change password |
-| GET | `/me/classes` | Assigned classes/subjects (data source for form dropdowns) |
-| GET | `/me/timetable` | Teacher's own weekly timetable |
-| GET | `/me/announcements` | Announcements (audience `all`/`teachers`) |
-| GET | `/me/results` | Roster for `?classId=&subjectId=&month=` |
-| POST | `/me/results` | Create a result |
-| PUT | `/me/results/:id` | Edit a result (own, not-yet-approved only) |
-| DELETE | `/me/results/:id` | Delete a result (own, not-yet-approved only) |
-| GET/POST/PUT/DELETE | `/me/assignments[/:id]` | Assignment CRUD (own records only) |
-| GET/POST/PUT/DELETE | `/me/lecture-materials[/:id]` | Lecture Material CRUD (own records only) |
+## 3. Status badges
 
-Plus two additions elsewhere:
-- `GET /api/students/me/assignments`, `GET /api/students/me/lecture-materials` — student-facing, class-scoped reads.
-- `GET /api/files/assignments/:id/download`, `GET /api/files/lecture-materials/:id/download` — authenticated, class-scoped file downloads (see "Security fix" below).
+Reused the existing `StatusBadge` component from Phase 6 as instructed — not modified. It already color-codes pending/approved/rejected using the design system's tokens (amber/green/red), which satisfies "clear colored badges" without needing literal emoji characters baked into a shared component.
 
-## Modified files (and why)
+## 4. Approval information
 
-```
-server/models/Result.js            -- status, createdBy, grade hook
-server/models/LectureUnit.js       -- description, externalLink, nullable filePath
-server/models/Class.js             -- Assignment association
-server/models/Subject.js           -- Assignment association
-server/models/Teacher.js           -- Assignment association (had to alias it
-                                       homeworkAssignments -- see "Bugs caught" below)
-server/controllers/studentController.js  -- status:'approved' filter (see Database changes)
-server/routes/studentRoutes.js     -- 2 new read-only routes
-server/routes/index.js             -- mounts /api/teachers and /api/files
-server/app.js                      -- removed public static /uploads mount (security)
-server/middleware/errorHandler.js  -- graceful Multer + unique-constraint error handling
-server/seed/seed.js                -- see below
-client/src/constants/sidebarLinks.js  -- teacher section rewritten (see below)
-client/src/hooks/useFetch.js        -- supports a falsy/conditional endpoint (skips fetch)
-client/src/pages/teacher/Dashboard.jsx  -- was a placeholder, now real
-README.md
-```
+Shown directly under the status badge in the table:
+- **Approved**: "Approved by: [name]" / "Approved on: [date]"
+- **Rejected**: the rejection reason, then "Rejected by: [name]" / "Rejected on: [date]"
 
-**Sidebar rewrite, explained:** the Phase 1 teacher sidebar (Upload Results / Upload Lecture Units / Upload Monthly Paper / My Classes) matched the *original* spec's file-upload model. The detailed Phase 6 spec's page set is entirely different (Dashboard, Results, Assignments, Lecture Materials, Timetable, Announcements, Profile), so the sidebar had to change to match what was actually built — the old links pointed at pages that no longer exist under this design. "My Classes" specifically was folded into the Results page's class/subject selector plus the Dashboard's summary cards, since the detailed spec doesn't call for it as a separate page.
+This required the "flat, all-my-results" query (new this phase) to eager-load the reviewing admin's name — it wasn't previously returned by any teacher-facing endpoint.
 
-## New files
+## 5. Resubmission
+
+Editing a rejected row (inline, in the table) and clicking Save flips its status back to `pending` automatically — this exact mechanism already existed from Phase 7, this phase's job was exposing it through the new table's Edit action and confirming the success message matches spec: *"Result resubmitted for Examination Board approval."* (An edit to a merely-*pending*, not-yet-reviewed row shows a plain "Result updated." instead — there's nothing to "resubmit" if it was never rejected.)
+
+## 6. Approved results are locked
+
+An approved row's Actions cell shows a lock icon and "Locked" instead of Edit/Delete buttons, with a tooltip reading exactly *"Approved results cannot be modified."* This is a UI reflection of a rule the backend already enforced (Phase 7): attempting to edit or delete an approved result via the API still correctly returns 409 regardless of what the UI shows.
+
+## 7 & 8. Student Portal / Examination Board — unchanged
+
+No files under `client/src/pages/admin/*` or the admin `Result Approval` workflow were touched. No files under `client/src/pages/student/*` needed changing except two additive, non-structural touches: the Results page gained an Exam Type column (so two results for the same subject/month are visually distinguishable), and the results endpoint now includes `examType` in each row's response — both purely additive, the existing approved-only filtering logic is completely unchanged.
+
+## Files changed
 
 **Backend:**
 ```
-server/models/Assignment.js
-server/middleware/loadTeacher.js
-server/middleware/uploadFile.js
-server/controllers/teacherController.js
-server/controllers/resultController.js
-server/controllers/assignmentController.js
-server/controllers/lectureMaterialController.js
-server/routes/teacherRoutes.js
-server/routes/downloadRoutes.js
+server/models/Result.js                        -- examType field; unique index widened
+server/controllers/resultController.js          -- rewritten: dual-mode getRoster (roster vs.
+                                                    "my results"), examType in create/update,
+                                                    exact required success/resubmit messages
+server/controllers/teacherController.js          -- new getMyStudents function
+server/controllers/studentController.js          -- examType added to results response;
+                                                     ranking query scoped by examType
+server/controllers/adminStudentController.js     -- examType in assessment history + name;
+                                                     ranking cache key + query scoped by examType
+server/routes/teacherRoutes.js                   -- new GET /me/students route; examType validators
+                                                     added to the existing POST/PUT results routes
+server/seed/seed.js                              -- one new example row (two exam types, same
+                                                     student/subject/month) proving the new
+                                                     constraint actually works
 ```
 
 **Frontend:**
 ```
-client/src/components/teacher/StatusBadge.jsx
-client/src/components/teacher/ClassSubjectFields.jsx
-client/src/pages/teacher/Results.jsx
-client/src/pages/teacher/Assignments.jsx
-client/src/pages/teacher/LectureMaterials.jsx
-client/src/pages/teacher/Timetable.jsx
-client/src/pages/teacher/Announcements.jsx
-client/src/pages/teacher/Profile.jsx
+client/src/pages/teacher/Results.jsx    -- rewritten: submission form + submitted-results table,
+                                            replacing the class/subject/month roster browser
+client/src/pages/student/Results.jsx    -- added Exam Type column (additive)
 ```
 
-## Security fix made along the way
+**Untouched:** every admin page, every model except `Result.js`, all RBAC/auth middleware, `assignmentController.js`, `lectureMaterialController.js`, and everything from Phase 7.5's earlier delivery (Student Assignments/Lecture Materials pages, Dashboard extension, sidebar). Verified with `git status` before committing.
 
-Phase 1's `app.js` served the entire `uploads/` folder publicly via `express.static('uploads')` — harmless while no real files existed, but Phase 6 introduces real assignment attachments and lecture material files. Left as-is, anyone with (or guessing) a file URL could download it with zero login. Replaced with two authenticated routes (`server/routes/downloadRoutes.js`) that check the requester's role and, for students, that the file actually belongs to their own class.
+## API endpoints
 
-## New dependencies
+**New:** `GET /teachers/me/students` — every student across the teacher's assigned classes, the data source for the submission form's Student dropdown.
 
-**None.** `multer` was already a dependency since Phase 1.
+**Behavior change, backward-compatible:** `GET /teachers/me/results` now branches on its query params. Exactly as before when `classId`+`subjectId`+`month` are all given (the Phase 6 roster view — unchanged output shape, plus `reviewedBy`/`reviewedAt`/`examType` newly included). New behavior when none of those three are given: returns the flat "my submitted results" list. A partial set (e.g. only `classId`) still correctly 400s, same as before.
 
-## New environment variables
-
-**None.**
-
-## Test credentials
-
-All via `node seed/seed.js`, password `Password123!` for everyone:
-
-| Role | ID | Notes |
-|---|---|---|
-| Teacher | `TCH-101` (ayesha.khan@institute.edu) | Teaches CS to class 10-A. Has results (including 2 pending), assignments, and materials — the main "everything works" account. |
-| Teacher | `TCH-102` (bilal.sheikh@institute.edu) | Teaches English to class 10-A. Used to prove cross-teacher isolation against TCH-101. |
-| Teacher | `TCH-103` (nadia.farooq@institute.edu) | Zero assignments at all — use to check every empty state. |
-| Student | `STU-2001` / `STU-2002` / `STU-2003` | Same as Phase 5 (Phase 5's `PHASE_NOTES.md` git history has the details). |
-| — | Class `10-B` exists but has no teacher assigned to it | Use to test "teacher cannot access another class unless assigned." |
+**No new endpoints for create/update/delete** — `POST/PUT/DELETE /teachers/me/results[/:id]` are the same routes Phase 6 built; `POST`/`PUT` now additionally accept an optional `examType` field (defaults to `'Monthly Test'` if omitted, so nothing that predates this phase breaks).
 
 ## Testing performed
 
-Everything below was run against a real MySQL instance with curl, not just written and assumed correct:
+Everything below was run against a real MySQL instance, not just written and assumed correct:
 
-- **Dashboard stats correctness:** Ayesha's dashboard showed exactly 1 assigned class, 3 total students, 2 pending result uploads — all manually cross-checked against the seed data. Nadia's (no assignments) came back all zeros with no errors.
-- **Roster view:** confirmed it lists every student in the selected class, correctly merging in existing results (marks/grade/status) for students who have one and showing blanks for those who don't.
-- **Grade auto-calculation:** confirmed via direct SQL that `grade` is computed correctly against the documented scale (91→A+, 82→A, 74→B+, etc.) after fixing a real bug (below).
-- **Validation:** marks exceeding total marks → 400; negative marks → 400; duplicate result (same student/subject/month) → 409 with a clear message.
-- **Cross-teacher isolation:** Bilal was blocked (403) from editing/deleting a result, assignment, and lecture material created by Ayesha, even though both teach the same class.
-- **Cross-class isolation:** Ayesha was blocked (403) from creating a result for class 10-B, which she isn't assigned to.
-- **Approved-result lock:** editing/deleting an already-`approved` result returns 409, not a silent success.
-- **Cross-role rejection:** a student's session hitting any `/api/teachers/*` route returns 403; no session at all returns 401 (verified as two distinct cases, not conflated).
-- **Student-side scoping:** confirmed `/api/students/me/assignments` and `/api/students/me/lecture-materials` return content from *both* of a class's teachers (Ayesha's and Bilal's), correctly aggregated by class rather than by teacher.
-- **Phase 5 regression:** re-verified that Ali's dashboard/results/overall-average reflect *only* approved results — the 2 pending June results created in this phase's seed data are correctly invisible to students, and the overall average (80.75%) matches the pre-Phase-6 calculation exactly.
-- **Full Phase 3 auth regression:** login, wrong role, logout all re-confirmed unchanged.
+- **Widened uniqueness**: submitted a second exam type ("Assessment 1") for a student/subject/month that already had a "Monthly Test" → succeeded (201). Submitted the exact same exam type again → correctly failed (409). Submitted an invalid exam type string → correctly failed (400).
+- **Exam-type-scoped ranking**: after approving both exam types above, confirmed each got its own independent class rank rather than being compared against each other — the single "Assessment 1" entry correctly ranked #1 (nothing else to compare it to), the "Monthly Test" entries ranked correctly among only other Monthly Test scores.
+- **New endpoint**: `GET /teachers/me/students` returns exactly the students in the teacher's assigned classes, with class name, roll number, and Institute ID.
+- **Dual-mode `getRoster`**: confirmed the old 3-filter roster mode returns byte-identical structure to before (plus the new fields), the new no-filter mode returns every result the teacher personally created, and a partial filter set still 400s.
+- **Full Workflow A (approve path)**: teacher submits → confirmed `pending` in the new table → confirmed invisible to the student → admin approves → teacher's table immediately shows `approved` with the correct approver name and date → student now sees it.
+- **Full Workflow B (reject → resubmit → approve path)**: teacher submits → admin rejects with a specific reason → teacher's table immediately shows the exact rejection reason, reviewer, and date → teacher edits (corrects the marks) → confirmed status flips back to `pending` automatically, with the exact message *"Result resubmitted for Examination Board approval."* → admin approves → student sees the result with the **corrected** marks, not the original submission — proving the full chain reflects final state.
+- **Full regression**: every endpoint across Phases 3, 5, 6, 7, and the earlier Phase 7.5 delivery was re-hit after this phase's changes — all still return the correct status codes, with zero errors in the server log. Cross-role security re-confirmed: student → teacher route → 403; student → admin route → 403; no session at all → 401.
 - `npm run build` completed with zero errors (same pre-existing, non-blocking `recharts` bundle-size warning as previous phases).
 
-### Bugs caught and fixed during this process
+## Test credentials
 
-1. **Alias collision:** `Teacher.js` already had a `hasMany(TeacherAssignment, { as: 'assignments' })` association from Phase 2. Adding `hasMany(Assignment, { as: 'assignments' })` for the new model collided with it — Sequelize refused to start with a clear `AssociationError`. Fixed by aliasing the new one `homeworkAssignments`.
-2. **Grade silently null:** the `beforeSave` hook that computes `grade` never fired for any seeded result. Root cause: Sequelize's `bulkCreate()` skips model hooks by default unless `{ individualHooks: true }` is passed — `seed.js` used plain `bulkCreate()`. Confirmed via direct SQL query showing every row's `grade` as `NULL`, fixed by adding the option, re-verified all grades compute correctly afterward. (The actual API-driven create/update path was never affected — `Model.create()` and `instance.save()` always run hooks; this was purely a seed-script issue.)
+Unchanged — same seeded accounts, same password (`Password123!`), see Phase 7's `PHASE_NOTES.md` history for the full table. One new fixture: **Ali (`STU-2001`) now has two separate approved Computer Science results for April 2026** — a Monthly Test and a standalone Assessment 1 — specifically so this new capability is visible without having to submit anything manually first.
 
 ## Integration instructions
 
 ```bash
 cd /path/to/your/local/institute-management-portal
 git status                              # make sure your working tree is clean
-git am /path/to/phase6-teacher-portal.patch
-cd server && npm install && node seed/seed.js    # new Result columns + Assignment table
+git am /path/to/phase7.5-teacher-result-workflow.patch
+cd server && npm install && node seed/seed.js    # new examType column + widened unique index -- reseed required
 cd ../client && npm install
 git push
 ```
 
-If `git am` conflicts, abort it (`git am --abort`) and copy these paths from the extracted zip instead, overwriting where they already exist: every file listed under "New files" above, plus every file listed under "Modified files." Then:
+**A reseed is required this time** (unlike the earlier Phase 7.5 delivery) — the new `examType` column and widened unique index need `sequelize.sync()` to create them, which only happens against a fresh schema in this project's current dev-stage setup.
+
+If `git am` conflicts, abort it (`git am --abort`) and copy every file listed under "Files changed" above from the extracted zip, overwriting where they already exist. Then:
 
 ```bash
 git add -A
-git commit -m "Phase 6: Add Teacher Portal"
+git commit -m "Phase 7.5: Teacher Result Workflow Fix"
 git push
 ```

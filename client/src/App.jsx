@@ -12,6 +12,8 @@ import StudentDashboard from './pages/student/Dashboard.jsx';
 import StudentResults from './pages/student/Results.jsx';
 import StudentProgress from './pages/student/Progress.jsx';
 import StudentTimetable from './pages/student/Timetable.jsx';
+import StudentAssignments from './pages/student/Assignments.jsx';
+import StudentLectureMaterials from './pages/student/LectureMaterials.jsx';
 import StudentPaperSchedule from './pages/student/PaperSchedule.jsx';
 import StudentAnnouncements from './pages/student/Announcements.jsx';
 import StudentProfile from './pages/student/Profile.jsx';
@@ -25,6 +27,15 @@ import TeacherAnnouncements from './pages/teacher/Announcements.jsx';
 import TeacherProfile from './pages/teacher/Profile.jsx';
 
 import AdminDashboard from './pages/admin/Dashboard.jsx';
+import AdminResultApproval from './pages/admin/ResultApproval.jsx';
+import AdminStudents from './pages/admin/Students.jsx';
+import AdminStudentReport from './pages/admin/StudentReport.jsx';
+import AdminTeachers from './pages/admin/Teachers.jsx';
+import AdminClasses from './pages/admin/Classes.jsx';
+import AdminSubjects from './pages/admin/Subjects.jsx';
+import AdminAnnouncements from './pages/admin/Announcements.jsx';
+import AdminTimetable from './pages/admin/Timetable.jsx';
+import AdminPaperSchedules from './pages/admin/PaperSchedules.jsx';
 
 function App() {
   return (
@@ -47,6 +58,8 @@ function App() {
         <Route path="results" element={<StudentResults />} />
         <Route path="progress" element={<StudentProgress />} />
         <Route path="timetable" element={<StudentTimetable />} />
+        <Route path="assignments" element={<StudentAssignments />} />
+        <Route path="lecture-materials" element={<StudentLectureMaterials />} />
         <Route path="paper-schedule" element={<StudentPaperSchedule />} />
         <Route path="announcements" element={<StudentAnnouncements />} />
         <Route path="profile" element={<StudentProfile />} />
@@ -71,7 +84,7 @@ function App() {
         <Route path="profile" element={<TeacherProfile />} />
       </Route>
 
-      {/* Examination Board (Admin) portal — management pages added in Phase 7 */}
+      {/* Examination Board (Admin) portal — fully built out in Phase 7 */}
       <Route
         path="/admin"
         element={
@@ -80,7 +93,17 @@ function App() {
           </ProtectedRoute>
         }
       >
+        <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="results" element={<AdminResultApproval />} />
+        <Route path="students" element={<AdminStudents />} />
+        <Route path="students/:id/report" element={<AdminStudentReport />} />
+        <Route path="teachers" element={<AdminTeachers />} />
+        <Route path="classes" element={<AdminClasses />} />
+        <Route path="subjects" element={<AdminSubjects />} />
+        <Route path="announcements" element={<AdminAnnouncements />} />
+        <Route path="timetable" element={<AdminTimetable />} />
+        <Route path="paper-schedules" element={<AdminPaperSchedules />} />
       </Route>
     </Routes>
   );

@@ -22,7 +22,7 @@ function DashboardLayout({ sidebarItems, roleLabel }) {
 
   return (
     <div className="min-h-screen flex bg-surface">
-      <aside className="w-64 bg-navy-800 text-white flex-shrink-0 hidden md:flex md:flex-col">
+      <aside className="w-64 bg-navy-800 text-white flex-shrink-0 hidden md:flex md:flex-col print:hidden">
         <div className="px-6 py-5 border-b border-navy-700">
           <p className="font-display text-lg tracking-wide">Institute Portal</p>
           <p className="text-xs text-navy-200 mt-0.5">{roleLabel}</p>
@@ -49,7 +49,7 @@ function DashboardLayout({ sidebarItems, roleLabel }) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-white border-b border-navy-100 flex items-center justify-between px-6 sticky top-0 z-10">
+        <header className="h-16 bg-white border-b border-navy-100 flex items-center justify-between px-6 sticky top-0 z-10 print:hidden">
           <p className="font-display text-navy-800">{roleLabel} Dashboard</p>
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted hidden sm:inline">{user?.name}</span>

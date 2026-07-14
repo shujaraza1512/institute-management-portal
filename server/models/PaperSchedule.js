@@ -8,6 +8,8 @@ module.exports = (sequelize, DataTypes) => {
     {
       classId: { type: DataTypes.INTEGER, allowNull: false },
       subjectId: { type: DataTypes.INTEGER, allowNull: false },
+      // Added in Phase 7 -- distinguishes e.g. "Mid-Term Exam" from "Monthly Test".
+      examName: { type: DataTypes.STRING, allowNull: false, defaultValue: 'Monthly Test' },
       examDate: { type: DataTypes.DATEONLY, allowNull: false },
       startTime: { type: DataTypes.TIME, allowNull: false },
       durationMinutes: { type: DataTypes.INTEGER, allowNull: false },

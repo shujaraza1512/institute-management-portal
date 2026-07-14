@@ -21,6 +21,7 @@ router.use(protect, authorize('teacher'), loadTeacher);
 router.get('/me/dashboard', teacherCtrl.getDashboard);
 router.get('/me/profile', teacherCtrl.getProfile);
 router.get('/me/classes', teacherCtrl.getAssignedClasses);
+router.get('/me/students', teacherCtrl.getMyStudents); // Phase 7.5 -- data source for the result submission form
 router.get('/me/timetable', teacherCtrl.getTimetable);
 router.get('/me/announcements', teacherCtrl.getAnnouncements);
 
@@ -34,8 +35,13 @@ router.put(
   teacherCtrl.changePassword
 );
 
+const EXAM_TYPES = ['Assessment 1', 'Assessment 2', 'Monthly Test', 'Module Test', 'Mock Exam', 'Final Exam', 'Other'];
+
 // --- Results ---------------------------------------------------------------------
-router.get('/me/results', resultCtrl.getRoster); // ?classId=&subjectId=&month=
+// With no query params: every result the teacher has personally submitted
+// (Phase 7.5). With classId+subjectId+month: the original Phase 6 class
+// roster view. See resultController.js's getRoster for the branch logic.
+router.get('/me/results', resultCtrl.getRoster);
 
 router.post(
   '/me/results',
@@ -44,6 +50,7 @@ router.post(
     body('classId').isInt().withMessage('A valid class must be selected.'),
     body('subjectId').isInt().withMessage('A valid subject must be selected.'),
     body('month').matches(/^\d{4}-\d{2}$/).withMessage('Month must be in YYYY-MM format.'),
+    body('examType').optional().isIn(EXAM_TYPES).withMessage('Invalid exam type.'),
     body('marks').isFloat({ min: 0 }).withMessage('Marks must be a non-negative number.'),
   ],
   validate,
@@ -52,7 +59,10 @@ router.post(
 
 router.put(
   '/me/results/:id',
-  [body('marks').optional().isFloat({ min: 0 }).withMessage('Marks must be a non-negative number.')],
+  [
+    body('marks').optional().isFloat({ min: 0 }).withMessage('Marks must be a non-negative number.'),
+    body('examType').optional().isIn(EXAM_TYPES).withMessage('Invalid exam type.'),
+  ],
   validate,
   resultCtrl.updateResult
 );
