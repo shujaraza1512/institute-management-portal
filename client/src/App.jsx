@@ -36,6 +36,7 @@ import AdminSubjects from './pages/admin/Subjects.jsx';
 import AdminAnnouncements from './pages/admin/Announcements.jsx';
 import AdminTimetable from './pages/admin/Timetable.jsx';
 import AdminPaperSchedules from './pages/admin/PaperSchedules.jsx';
+import AdminProfile from './pages/admin/Profile.jsx';
 
 function App() {
   return (
@@ -104,6 +105,7 @@ function App() {
         <Route path="announcements" element={<AdminAnnouncements />} />
         <Route path="timetable" element={<AdminTimetable />} />
         <Route path="paper-schedules" element={<AdminPaperSchedules />} />
+        <Route path="profile" element={<AdminProfile />} />
       </Route>
     </Routes>
   );

@@ -59,9 +59,9 @@ function StudentDashboard() {
       </div>
 
       <div className="flex flex-wrap gap-4 text-sm">
-        <Link to="/student/results" className="text-navy-700 hover:underline">View Results →</Link>
-        <Link to="/student/progress" className="text-navy-700 hover:underline">View Progress →</Link>
-        <Link to="/student/timetable" className="text-navy-700 hover:underline">View Timetable →</Link>
+        <Link to="/student/results" className="btn-link">View Results →</Link>
+        <Link to="/student/progress" className="btn-link">View Progress →</Link>
+        <Link to="/student/timetable" className="btn-link">View Timetable →</Link>
       </div>
 
       {/* Added in Phase 7.5 -- extends the dashboard, existing cards/links above are unchanged. */}
@@ -72,7 +72,7 @@ function StudentDashboard() {
               <ClipboardList className="w-4 h-4 text-sky-500" />
               <p className="font-display text-navy-800">Recent Assignments</p>
             </div>
-            <Link to="/student/assignments" className="text-xs text-navy-700 hover:underline">View all →</Link>
+            <Link to="/student/assignments" className="btn-link-sm">View all →</Link>
           </div>
           {recentAssignments.length === 0 ? (
             <EmptyState title="No assignments yet" />
@@ -99,7 +99,7 @@ function StudentDashboard() {
               <FileText className="w-4 h-4 text-sky-500" />
               <p className="font-display text-navy-800">Recent Lecture Materials</p>
             </div>
-            <Link to="/student/lecture-materials" className="text-xs text-navy-700 hover:underline">View all →</Link>
+            <Link to="/student/lecture-materials" className="btn-link-sm">View all →</Link>
           </div>
           {recentLectureMaterials.length === 0 ? (
             <EmptyState title="No materials yet" />

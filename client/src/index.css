@@ -15,3 +15,82 @@ body {
 h1, h2, h3, h4 {
   @apply font-display text-navy-800;
 }
+
+/* Phase 8: standardized buttons, tables, and form inputs. Applied as
+   shared classes across every page rather than one-off Tailwind strings,
+   so "standardize buttons"/"better tables"/"better forms" hold app-wide
+   from one definition instead of needing every page rewritten by hand. */
+@layer components {
+  /* --- Buttons ------------------------------------------------------- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-card text-sm font-medium
+           transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .btn-primary {
+    @apply btn bg-navy-700 text-white shadow-card hover:bg-navy-800 focus:ring-navy-500;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-navy-700 border border-navy-200 hover:border-navy-400 hover:bg-navy-50 focus:ring-navy-500;
+  }
+  .btn-success {
+    @apply btn bg-green-500 text-white shadow-card hover:bg-green-600 focus:ring-green-500;
+  }
+  .btn-danger {
+    @apply btn bg-reject text-white shadow-card hover:bg-navy-900 focus:ring-navy-700;
+  }
+  .btn-link {
+    @apply text-sm text-navy-700 hover:underline focus:outline-none focus:ring-2 focus:ring-navy-500 rounded disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .btn-link-danger {
+    @apply text-sm text-reject hover:underline focus:outline-none focus:ring-2 focus:ring-navy-700 rounded disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .btn-link-sm {
+    @apply text-xs text-navy-700 hover:underline focus:outline-none focus:ring-2 focus:ring-navy-500 rounded disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .btn-link-danger-sm {
+    @apply text-xs text-reject hover:underline focus:outline-none focus:ring-2 focus:ring-navy-700 rounded disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+
+  /* --- Form inputs ------------------------------------------------------- */
+  .field-label {
+    @apply block text-sm text-ink mb-1 font-medium;
+  }
+  .field-input {
+    @apply w-full px-3 py-2 border border-navy-100 rounded-card text-ink placeholder:text-muted/70
+           focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-colors;
+  }
+  .field-input:disabled,
+  .field-input[readonly] {
+    @apply bg-surface text-muted cursor-not-allowed;
+  }
+  .field-error {
+    @apply text-sm text-reject mt-1;
+  }
+  .field-success {
+    @apply text-sm text-green-700 mt-1;
+  }
+
+  /* --- Tables -------------------------------------------------------- */
+  /* Applied to the wrapping card div (not the <table> itself) so the
+     rounded corners/shadow/scroll container are unaffected; zebra + hover
+     target rows via a plain CSS descendant rule, so no per-row className
+     is needed on any existing table markup. */
+  .data-table table thead tr {
+    @apply border-b border-navy-100 text-left text-muted;
+  }
+  .data-table table thead {
+    @apply sticky top-0 bg-white z-[1];
+  }
+  .data-table table tbody tr {
+    @apply border-b border-navy-50 last:border-0 transition-colors;
+  }
+  .data-table table tbody tr:nth-child(even) {
+    @apply bg-navy-50/40;
+  }
+  .data-table table tbody tr:hover {
+    @apply bg-green-50;
+  }
+}

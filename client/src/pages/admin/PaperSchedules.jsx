@@ -78,7 +78,7 @@ function PaperSchedules() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-display text-navy-800">Paper Schedule Management</h2>
-        <button onClick={openCreate} className="px-4 py-2 text-sm bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 transition-colors">
+        <button onClick={openCreate} className="btn-primary btn-sm">
           + Add Exam
         </button>
       </div>
@@ -112,8 +112,8 @@ function PaperSchedules() {
                   <td className="px-4 py-3">{s.room || '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-3">
-                      <button onClick={() => openEdit(s)} className="text-xs text-navy-700 hover:underline">Edit</button>
-                      <button onClick={() => handleDelete(s)} className="text-xs text-reject hover:underline">Delete</button>
+                      <button onClick={() => openEdit(s)} className="btn-link-sm">Edit</button>
+                      <button onClick={() => handleDelete(s)} className="btn-link-danger-sm">Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -127,38 +127,38 @@ function PaperSchedules() {
         <Modal title={editingId ? 'Edit Exam' : 'Add Exam'} onClose={() => setShowForm(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm text-ink mb-1">Exam Name</label>
+              <label className="field-label">Exam Name</label>
               <input type="text" value={form.examName} onChange={(e) => setForm({ ...form, examName: e.target.value })} placeholder="e.g. Mid-Term Examination" className="w-full px-3 py-2 border border-navy-100 rounded-card" />
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-ink mb-1">Class</label>
+                <label className="field-label">Class</label>
                 <select value={form.classId} onChange={(e) => setForm({ ...form, classId: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card">
                   <option value="">Select a class</option>
                   {lookups?.classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Subject</label>
+                <label className="field-label">Subject</label>
                 <select value={form.subjectId} onChange={(e) => setForm({ ...form, subjectId: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card">
                   <option value="">Select a subject</option>
                   {lookups?.subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Exam Date</label>
+                <label className="field-label">Exam Date</label>
                 <input type="date" value={form.examDate} onChange={(e) => setForm({ ...form, examDate: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Start Time</label>
+                <label className="field-label">Start Time</label>
                 <input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Duration (minutes)</label>
+                <label className="field-label">Duration (minutes)</label>
                 <input type="number" value={form.durationMinutes} onChange={(e) => setForm({ ...form, durationMinutes: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Room</label>
+                <label className="field-label">Room</label>
                 <input type="text" value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
             </div>
@@ -166,10 +166,10 @@ function PaperSchedules() {
             {formError && <p className="text-sm text-reject">{formError}</p>}
 
             <div className="flex gap-3">
-              <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 disabled:opacity-60">
+              <button type="submit" disabled={submitting} className="btn-primary">
                 {submitting ? 'Saving…' : 'Save'}
               </button>
-              <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 text-navy-700 hover:underline">Cancel</button>
+              <button type="button" onClick={() => setShowForm(false)} className="btn-link">Cancel</button>
             </div>
           </form>
         </Modal>

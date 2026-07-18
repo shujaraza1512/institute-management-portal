@@ -185,11 +185,11 @@ function Results() {
 
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-ink mb-1">Student</label>
+                <label className="field-label">Student</label>
                 <select
                   value={form.studentId}
                   onChange={(e) => handleStudentChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="field-input"
                 >
                   <option value="">Select a student</option>
                   {students.map((s) => (
@@ -199,12 +199,12 @@ function Results() {
               </div>
 
               <div>
-                <label className="block text-sm text-ink mb-1">Class</label>
+                <label className="field-label">Class</label>
                 <input type="text" readOnly value={selectedStudent ? selectedStudent.className : ''} placeholder="Auto-filled from student" className="w-full px-3 py-2 border border-navy-100 rounded-card bg-surface text-muted" />
               </div>
 
               <div>
-                <label className="block text-sm text-ink mb-1">Roll Number / Institute ID</label>
+                <label className="field-label">Roll Number / Institute ID</label>
                 <input
                   type="text"
                   readOnly
@@ -215,12 +215,12 @@ function Results() {
               </div>
 
               <div>
-                <label className="block text-sm text-ink mb-1">Subject</label>
+                <label className="field-label">Subject</label>
                 <select
                   value={form.subjectId}
                   onChange={(e) => setForm({ ...form, subjectId: e.target.value })}
                   disabled={!selectedStudent}
-                  className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-surface disabled:text-muted"
+                  className="field-input"
                 >
                   <option value="">{selectedStudent ? 'Select a subject' : 'Select a student first'}</option>
                   {subjectOptions.map((s) => (
@@ -230,11 +230,11 @@ function Results() {
               </div>
 
               <div>
-                <label className="block text-sm text-ink mb-1">Exam Type</label>
+                <label className="field-label">Exam Type</label>
                 <select
                   value={form.examType}
                   onChange={(e) => setForm({ ...form, examType: e.target.value })}
-                  className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="field-input"
                 >
                   {EXAM_TYPES.map((t) => (
                     <option key={t} value={t}>{t}</option>
@@ -243,48 +243,48 @@ function Results() {
               </div>
 
               <div>
-                <label className="block text-sm text-ink mb-1">Month</label>
+                <label className="field-label">Month</label>
                 <input
                   type="month"
                   value={form.month}
                   onChange={(e) => setForm({ ...form, month: e.target.value })}
-                  className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="field-input"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-ink mb-1">Total Marks</label>
+                <label className="field-label">Total Marks</label>
                 <input
                   type="number"
                   value={form.totalMarks}
                   onChange={(e) => setForm({ ...form, totalMarks: e.target.value })}
-                  className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="field-input"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-ink mb-1">Obtained Marks</label>
+                <label className="field-label">Obtained Marks</label>
                 <input
                   type="number"
                   value={form.marks}
                   onChange={(e) => setForm({ ...form, marks: e.target.value })}
-                  className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="field-input"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-ink mb-1">Percentage</label>
+                <label className="field-label">Percentage</label>
                 <input type="text" readOnly value={livePercentage !== null ? `${livePercentage}%` : ''} placeholder="Auto-calculated" className="w-full px-3 py-2 border border-navy-100 rounded-card bg-surface text-muted" />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm text-ink mb-1">Teacher Remarks</label>
+              <label className="field-label">Teacher Remarks</label>
               <textarea
                 value={form.teacherRemarks}
                 onChange={(e) => setForm({ ...form, teacherRemarks: e.target.value })}
                 rows={2}
-                className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="field-input"
               />
             </div>
 
@@ -294,7 +294,7 @@ function Results() {
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2.5 bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 transition-colors disabled:opacity-60"
+              className="btn-primary"
             >
               {submitting ? 'Submitting…' : 'Submit Result'}
             </button>
@@ -312,7 +312,7 @@ function Results() {
             ) : submitted.length === 0 ? (
               <EmptyState title="No results submitted yet" description="Use the form above to submit your first result." />
             ) : (
-              <div className="bg-white rounded-card shadow-card overflow-x-auto">
+              <div className="bg-white rounded-card shadow-card overflow-x-auto data-table">
                 <table className="w-full text-sm min-w-[1100px]">
                   <thead>
                     <tr className="text-left text-muted border-b border-navy-100">
@@ -380,7 +380,7 @@ function Results() {
                                     <button
                                       onClick={() => saveEdit(row)}
                                       disabled={rowBusy === row.resultId}
-                                      className="text-xs px-2 py-1 bg-navy-700 text-white rounded-card hover:bg-navy-800 disabled:opacity-60"
+                                      className="btn-primary btn-sm"
                                     >
                                       {rowBusy === row.resultId ? 'Saving…' : 'Save'}
                                     </button>
@@ -422,11 +422,11 @@ function Results() {
                                   </span>
                                 ) : (
                                   <div className="flex gap-3">
-                                    <button onClick={() => startEdit(row)} className="text-xs text-navy-700 hover:underline">Edit</button>
+                                    <button onClick={() => startEdit(row)} className="btn-link-sm">Edit</button>
                                     <button
                                       onClick={() => deleteRow(row)}
                                       disabled={rowBusy === row.resultId}
-                                      className="text-xs text-reject hover:underline disabled:opacity-60"
+                                      className="btn-link-danger-sm"
                                     >
                                       Delete
                                     </button>

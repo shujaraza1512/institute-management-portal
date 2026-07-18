@@ -145,7 +145,7 @@ function ResultApproval() {
                         >
                           Approve
                         </button>
-                        <button onClick={() => openReject(r)} className="text-xs text-reject hover:underline">
+                        <button onClick={() => openReject(r)} className="btn-link-danger-sm">
                           Reject
                         </button>
                       </div>
@@ -169,12 +169,12 @@ function ResultApproval() {
               {rejectTarget.subject} · {rejectTarget.month} · {rejectTarget.marks}/{rejectTarget.totalMarks}
             </p>
             <div>
-              <label className="block text-sm text-ink mb-1">Reason (optional)</label>
+              <label className="field-label">Reason (optional)</label>
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="field-input"
                 placeholder="Let the teacher know what needs to change…"
               />
             </div>
@@ -187,7 +187,7 @@ function ResultApproval() {
               >
                 {busyId === rejectTarget.id ? 'Rejecting…' : 'Reject Result'}
               </button>
-              <button onClick={() => setRejectTarget(null)} className="px-5 py-2.5 text-navy-700 hover:underline">
+              <button onClick={() => setRejectTarget(null)} className="btn-link">
                 Cancel
               </button>
             </div>

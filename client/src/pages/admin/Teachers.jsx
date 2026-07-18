@@ -125,7 +125,7 @@ function Teachers() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-display text-navy-800">Manage Teachers</h2>
-        <button onClick={openCreate} className="px-4 py-2 text-sm bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 transition-colors">
+        <button onClick={openCreate} className="btn-primary btn-sm">
           + Add Teacher
         </button>
       </div>
@@ -174,12 +174,12 @@ function Teachers() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-3">
-                      <button onClick={() => openEdit(t)} className="text-xs text-navy-700 hover:underline">Edit</button>
-                      <button onClick={() => openAssign(t)} className="text-xs text-navy-700 hover:underline">Assign</button>
+                      <button onClick={() => openEdit(t)} className="btn-link-sm">Edit</button>
+                      <button onClick={() => openAssign(t)} className="btn-link-sm">Assign</button>
                       <button onClick={() => toggleStatus(t)} className="text-xs text-pending hover:underline">
                         {t.isActive ? 'Deactivate' : 'Activate'}
                       </button>
-                      <button onClick={() => handleDelete(t)} className="text-xs text-reject hover:underline">Delete</button>
+                      <button onClick={() => handleDelete(t)} className="btn-link-danger-sm">Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -194,33 +194,33 @@ function Teachers() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-ink mb-1">Name</label>
+                <label className="field-label">Name</label>
                 <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Institute ID</label>
+                <label className="field-label">Institute ID</label>
                 <input type="text" value={form.instituteId} onChange={(e) => setForm({ ...form, instituteId: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Email</label>
+                <label className="field-label">Email</label>
                 <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               {!editingId && (
                 <div>
-                  <label className="block text-sm text-ink mb-1">Password</label>
+                  <label className="field-label">Password</label>
                   <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
                 </div>
               )}
               <div>
-                <label className="block text-sm text-ink mb-1">Phone</label>
+                <label className="field-label">Phone</label>
                 <input type="text" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Qualification</label>
+                <label className="field-label">Qualification</label>
                 <input type="text" value={form.qualification} onChange={(e) => setForm({ ...form, qualification: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Department</label>
+                <label className="field-label">Department</label>
                 <input type="text" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
             </div>
@@ -228,10 +228,10 @@ function Teachers() {
             {formError && <p className="text-sm text-reject">{formError}</p>}
 
             <div className="flex gap-3">
-              <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 disabled:opacity-60">
+              <button type="submit" disabled={submitting} className="btn-primary">
                 {submitting ? 'Saving…' : 'Save'}
               </button>
-              <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 text-navy-700 hover:underline">Cancel</button>
+              <button type="button" onClick={() => setShowForm(false)} className="btn-link">Cancel</button>
             </div>
           </form>
         </Modal>
@@ -258,10 +258,10 @@ function Teachers() {
             </div>
             {assignError && <p className="text-sm text-reject">{assignError}</p>}
             <div className="flex gap-3">
-              <button onClick={saveAssignments} className="px-5 py-2.5 bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800">
+              <button onClick={saveAssignments} className="btn-primary">
                 Save Assignments
               </button>
-              <button onClick={() => setAssignTarget(null)} className="px-5 py-2.5 text-navy-700 hover:underline">Cancel</button>
+              <button onClick={() => setAssignTarget(null)} className="btn-link">Cancel</button>
             </div>
           </div>
         </Modal>

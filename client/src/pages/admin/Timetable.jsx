@@ -76,7 +76,7 @@ function TimetableManagement() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-display text-navy-800">Timetable Management</h2>
-        <button onClick={openCreate} className="px-4 py-2 text-sm bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 transition-colors">
+        <button onClick={openCreate} className="btn-primary btn-sm">
           + Add Entry
         </button>
       </div>
@@ -108,8 +108,8 @@ function TimetableManagement() {
                   <td className="px-4 py-3">{e.room || '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-3">
-                      <button onClick={() => openEdit(e)} className="text-xs text-navy-700 hover:underline">Edit</button>
-                      <button onClick={() => handleDelete(e)} className="text-xs text-reject hover:underline">Delete</button>
+                      <button onClick={() => openEdit(e)} className="btn-link-sm">Edit</button>
+                      <button onClick={() => handleDelete(e)} className="btn-link-danger-sm">Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -124,42 +124,42 @@ function TimetableManagement() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-ink mb-1">Class</label>
+                <label className="field-label">Class</label>
                 <select value={form.classId} onChange={(e) => setForm({ ...form, classId: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card">
                   <option value="">Select a class</option>
                   {lookups?.classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Subject</label>
+                <label className="field-label">Subject</label>
                 <select value={form.subjectId} onChange={(e) => setForm({ ...form, subjectId: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card">
                   <option value="">Select a subject</option>
                   {lookups?.subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Teacher</label>
+                <label className="field-label">Teacher</label>
                 <select value={form.teacherId} onChange={(e) => setForm({ ...form, teacherId: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card">
                   <option value="">Select a teacher</option>
                   {lookups?.teachers.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Day</label>
+                <label className="field-label">Day</label>
                 <select value={form.day} onChange={(e) => setForm({ ...form, day: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card">
                   {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Start Time</label>
+                <label className="field-label">Start Time</label>
                 <input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">End Time</label>
+                <label className="field-label">End Time</label>
                 <input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-sm text-ink mb-1">Room</label>
+                <label className="field-label">Room</label>
                 <input type="text" value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
             </div>
@@ -167,10 +167,10 @@ function TimetableManagement() {
             {formError && <p className="text-sm text-reject">{formError}</p>}
 
             <div className="flex gap-3">
-              <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 disabled:opacity-60">
+              <button type="submit" disabled={submitting} className="btn-primary">
                 {submitting ? 'Saving…' : 'Save'}
               </button>
-              <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 text-navy-700 hover:underline">Cancel</button>
+              <button type="button" onClick={() => setShowForm(false)} className="btn-link">Cancel</button>
             </div>
           </form>
         </Modal>

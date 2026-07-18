@@ -6,7 +6,7 @@ A role-based web portal for an educational institute, with three roles: **Studen
 
 ---
 
-## Project status: Phase 7.5 — Teacher Result Workflow Complete ✅
+## Project status: Phase 8 — Final Polish & Design System ✅
 
 ### Roadmap
 
@@ -18,8 +18,8 @@ A role-based web portal for an educational institute, with three roles: **Studen
 - [x] **Phase 6 — Teacher Portal**
 - [x] **Phase 7 — Examination Board (Admin) Portal**
 - [x] **Phase 7.5 — Functional Completion**
-- [x] **Phase 7.5 — Teacher Result Workflow Fix** *(this delivery — see `PHASE_NOTES.md`)*
-- [ ] **Phase 8 — Integration, polish, and review**
+- [x] **Phase 7.5 — Teacher Result Workflow Fix**
+- [x] **Phase 8 — Final Polish, UI/UX, Performance & Project Refinement** *(this delivery — see `PHASE_NOTES.md`)*
 
 > **Continuing this project in a new chat:** this coding environment resets between separate conversations. Keep this project in a git repo and upload it back (or share the repo URL again) when you're ready for the next phase, so Claude can build on the actual code instead of starting over. Each phase's `PHASE_NOTES.md` (see project root) documents exactly what changed, so you don't have to rely on chat history to remember.
 
@@ -160,20 +160,36 @@ This required one genuinely necessary schema change: **Exam Type** (Assessment 1
 
 ---
 
-## Design tokens (blue & white theme)
+## Design tokens (Phase 8 brand palette: blue, green, white)
 
-Defined in `client/tailwind.config.js`, so every future page pulls from the same palette instead of ad-hoc colors:
+Defined in `client/tailwind.config.js`, so every page pulls from the same palette instead of ad-hoc colors. Rebuilt in Phase 8 around the mandated 3-color brand identity — everywhere else in this doc still calls the primary color "navy" simply because that's the token's name, not because navy is a fourth color:
 
 | Token | Value | Use |
 |---|---|---|
-| `navy-700` | `#1f3a63` | Primary brand blue (buttons, sidebar, headings) |
-| `navy-800` | `#162a49` | Sidebar background |
-| `sky-500` | `#3b82c4` | Accent — used sparingly (links, active states) |
-| `surface` | `#f7f9fc` | Page background (off-white, not stark white) |
-| `ink` / `muted` | `#1e293b` / `#64748b` | Primary / secondary text |
-| `approve` / `pending` / `reject` | `#2f855a` / `#b7791f` / `#c53030` | Status colors for approvals workflow |
+| `navy-700` | `#225775` | **Brand blue (exact)** — buttons, sidebar, headings, active nav, focus rings |
+| `navy-800` / `navy-900` | `#1A4359` / `#12303F` | Darker shades — sidebar background, hover states, "rejected" status |
+| `navy-50`–`navy-500` | tints of `#225775` | Light backgrounds, borders, zebra rows, "pending" status |
+| `sky-500` | `#3D7A9E` | Accent — a lighter tint of the same blue family, not a separate hue |
+| `green-500` | `#95C83E` | **Brand green (exact)** — success states, "approved" status, secondary buttons |
+| `surface` | `#F5F8FA` | Page background — barely-off-white, blue-tinted |
+| `ink` / `muted` | `#1A2E38` / `#5B7480` | Primary / secondary text — dark/medium blue-gray, not flat black |
+| `approve` / `pending` / `reject` | `#95C83E` / `#4E8FAB` / `#12303F` | Status colors, built entirely from the blue/green scale (no red/amber) — see `PHASE_NOTES.md` for the accessibility approach (icons + lightness, not hue, distinguish them) |
 
-Typography: **Lora** (serif) for headings — gives the portal an institutional, academic feel — paired with **Inter** for body text and UI, which stays highly readable in dense tables and forms. **IBM Plex Mono** is reserved for IDs/codes/timestamps.
+Typography (unchanged from Phase 1): **Lora** (serif) for headings, **Inter** for body text and UI, **IBM Plex Mono** reserved for IDs/codes/timestamps.
+
+Shared component classes (buttons, form fields, table zebra/hover/sticky-header) are defined once in `client/src/index.css` under `@layer components` — `.btn-primary`, `.btn-secondary`, `.btn-danger`, `.btn-success`, `.btn-link`, `.field-input`, `.field-label`, `.data-table`. Use these instead of one-off Tailwind strings so new pages stay visually consistent automatically.
+
+---
+
+## Phase 8 — Final Polish, UI/UX, Performance & Project Refinement
+
+A full visual and usability pass across the entire application — no business logic, models, routes, or RBAC changed except two small, explicitly-justified additions (see below). Highlights: the whole app now runs on the 3-color brand palette above; every button, table, and form field pulls from shared classes rather than repeated one-off styling; every password field has a show/hide toggle; the dashboard header's profile area is now genuinely clickable (with a hover state and chevron) and takes the user to a real Profile page — including for the Examination Board account, which previously had no profile page of any kind; both the Student and Teacher profile pages gained an actual **Edit → Save** flow for their own contact details, since the original pages only ever displayed this data.
+
+Two backend gaps were also fixed along the way, not just visual ones: `guardianName` (Student) and `qualification` (Teacher) had existed in the database since Phase 7 but were never actually returned by their own `getProfile` endpoints — a real, if minor, bug, now fixed.
+
+One deliberate design decision worth knowing about: with only blue, green, and white as brand colors, "rejected"/error/danger states are distinguished from "approved" by **darkness and iconography** (a filled dark-navy badge with an X-circle icon) rather than by a red hue. This keeps the literal 3-color mandate while still meeting the "don't rely on color alone" accessibility principle — full reasoning in `PHASE_NOTES.md`.
+
+No real logo file was attached to this request; a placeholder mark (a rounded blue square with a graduation-cap icon) was built instead, designed so dropping in a real logo image later is a one-line change in `client/src/components/common/Logo.jsx`.
 
 ---
 

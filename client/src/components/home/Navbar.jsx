@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { GraduationCap, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { INSTITUTE_NAME } from '../../constants/siteContent.js';
+import Logo from '../common/Logo.jsx';
 
 const NAV_LINKS = [
   { label: 'Home', href: '/' },
@@ -31,9 +31,8 @@ function Navbar() {
   return (
     <header className={`sticky top-0 z-30 bg-white/95 backdrop-blur transition-shadow ${scrolled ? 'shadow-card' : ''}`}>
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 text-navy-800 min-w-0">
-          <GraduationCap className="w-6 h-6 text-navy-700 flex-shrink-0" />
-          <span className="font-display text-lg truncate">{INSTITUTE_NAME}</span>
+        <Link to="/" className="min-w-0 focus:outline-none focus:ring-2 focus:ring-navy-500 rounded">
+          <Logo size="sm" />
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
@@ -48,15 +47,17 @@ function Navbar() {
               </Link>
             )
           )}
-          <Link
-            to={ctaHref}
-            className="px-4 py-2 text-sm bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 transition-colors"
-          >
+          <Link to={ctaHref} className="btn-primary btn-sm">
             {ctaLabel}
           </Link>
         </nav>
 
-        <button className="md:hidden text-navy-800" onClick={() => setMobileOpen((open) => !open)} aria-label="Toggle menu">
+        <button
+          className="md:hidden text-navy-800 focus:outline-none focus:ring-2 focus:ring-navy-500 rounded"
+          onClick={() => setMobileOpen((open) => !open)}
+          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileOpen}
+        >
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
@@ -74,11 +75,7 @@ function Navbar() {
               </Link>
             )
           )}
-          <Link
-            to={ctaHref}
-            onClick={() => setMobileOpen(false)}
-            className="block text-center px-4 py-2 text-sm bg-navy-700 text-white rounded-card"
-          >
+          <Link to={ctaHref} onClick={() => setMobileOpen(false)} className="btn-primary btn-sm w-full">
             {ctaLabel}
           </Link>
         </div>

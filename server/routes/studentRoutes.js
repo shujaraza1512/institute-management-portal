@@ -17,6 +17,7 @@ router.use(protect, authorize('student'), loadStudent);
 
 router.get('/me/dashboard', ctrl.getDashboard);
 router.get('/me/profile', ctrl.getProfile);
+router.put('/me/profile', ctrl.updateProfile); // Phase 8 -- self-service contact-detail edits
 
 router.put(
   '/me/password',

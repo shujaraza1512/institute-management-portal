@@ -105,7 +105,7 @@ function LectureMaterials() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-display text-navy-800">Lecture Materials</h2>
         {classes.length > 0 && (
-          <button onClick={openCreate} className="px-4 py-2 text-sm bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 transition-colors">
+          <button onClick={openCreate} className="btn-primary btn-sm">
             + New Material
           </button>
         )}
@@ -130,31 +130,31 @@ function LectureMaterials() {
               )}
 
               <div>
-                <label className="block text-sm text-ink mb-1">Title</label>
+                <label className="field-label">Title</label>
                 <input
                   type="text"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="field-input"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-ink mb-1">Description</label>
+                <label className="field-label">Description</label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   rows={2}
-                  className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="field-input"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-ink mb-1">Type</label>
+                <label className="field-label">Type</label>
                 <select
                   value={form.materialType}
                   onChange={(e) => setForm({ ...form, materialType: e.target.value })}
-                  className="w-full sm:w-48 px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="field-input w-full sm:w-48"
                 >
                   <option value="pdf">PDF</option>
                   <option value="notes">Notes</option>
@@ -165,7 +165,7 @@ function LectureMaterials() {
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-ink mb-1">File</label>
+                  <label className="field-label">File</label>
                   <input
                     type="file"
                     accept=".pdf,.ppt,.pptx,.doc,.docx"
@@ -174,13 +174,13 @@ function LectureMaterials() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-ink mb-1">...or an External Link</label>
+                  <label className="field-label">...or an External Link</label>
                   <input
                     type="url"
                     placeholder="https://…"
                     value={form.externalLink}
                     onChange={(e) => setForm({ ...form, externalLink: e.target.value, file: null })}
-                    className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    className="field-input"
                   />
                 </div>
               </div>
@@ -188,10 +188,10 @@ function LectureMaterials() {
               {formError && <p className="text-sm text-reject">{formError}</p>}
 
               <div className="flex gap-3">
-                <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 disabled:opacity-60">
+                <button type="submit" disabled={submitting} className="btn-primary">
                   {submitting ? 'Saving…' : 'Save'}
                 </button>
-                <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 text-navy-700 hover:underline">
+                <button type="button" onClick={() => setShowForm(false)} className="btn-link">
                   Cancel
                 </button>
               </div>
@@ -216,8 +216,8 @@ function LectureMaterials() {
                     </a>
                   )}
                   <div className="flex gap-4 mt-4">
-                    <button onClick={() => openEdit(m)} className="text-xs text-navy-700 hover:underline">Edit</button>
-                    <button onClick={() => handleDelete(m)} className="text-xs text-reject hover:underline">Delete</button>
+                    <button onClick={() => openEdit(m)} className="btn-link-sm">Edit</button>
+                    <button onClick={() => handleDelete(m)} className="btn-link-danger-sm">Delete</button>
                   </div>
                 </div>
               ))}

@@ -16,6 +16,7 @@ const announcementCtrl = require('../controllers/adminAnnouncementController');
 const timetableCtrl = require('../controllers/adminTimetableController');
 const paperScheduleCtrl = require('../controllers/adminPaperScheduleController');
 const lookupCtrl = require('../controllers/adminLookupController');
+const profileCtrl = require('../controllers/adminProfileController');
 
 // Every route below requires a valid session (protect) and the admin role
 // specifically (authorize) -- no loadX middleware is needed here the way
@@ -26,6 +27,19 @@ router.use(protect, authorize('admin'));
 
 router.get('/dashboard', dashboardCtrl.getDashboard);
 router.get('/lookups', lookupCtrl.getLookups);
+
+// --- Profile (Phase 8) ---------------------------------------------------------
+router.get('/profile', profileCtrl.getProfile);
+router.put('/profile', profileCtrl.updateProfile);
+router.put(
+  '/profile/password',
+  [
+    body('currentPassword').notEmpty().withMessage('Current password is required.'),
+    body('newPassword').isLength({ min: 8 }).withMessage('New password must be at least 8 characters.'),
+  ],
+  validate,
+  profileCtrl.changePassword
+);
 
 // --- Result approval ---------------------------------------------------------------------
 router.get('/results', resultCtrl.getResults);

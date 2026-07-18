@@ -36,11 +36,11 @@ function Progress() {
         <p className="font-display text-navy-800 mb-4">Monthly Trend</p>
         <ResponsiveContainer width="100%" height={260}>
           <LineChart data={monthlyTrend}>
-            <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
+            <CartesianGrid stroke="#D3E3EA" strokeDasharray="3 3" />
             <XAxis dataKey="month" tick={{ fontSize: 12 }} />
             <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
             <Tooltip />
-            <Line type="monotone" dataKey="average" stroke="#1f3a63" strokeWidth={2} dot={{ r: 3 }} />
+            <Line type="monotone" dataKey="average" stroke="#225775" strokeWidth={2} dot={{ r: 3 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -49,11 +49,11 @@ function Progress() {
         <p className="font-display text-navy-800 mb-4">Subject-wise Performance</p>
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={subjectPerformance}>
-            <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
+            <CartesianGrid stroke="#D3E3EA" strokeDasharray="3 3" />
             <XAxis dataKey="subject" tick={{ fontSize: 12 }} />
             <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
             <Tooltip />
-            <Bar dataKey="average" fill="#3b82c4" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="average" fill="#95C83E" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

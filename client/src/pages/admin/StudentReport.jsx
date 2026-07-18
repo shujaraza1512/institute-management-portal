@@ -39,7 +39,7 @@ function StudentReport() {
         </Link>
         <button
           onClick={() => window.print()}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 transition-colors"
+          className="btn-primary btn-sm"
         >
           <Printer className="w-4 h-4" /> Print Student Report
         </button>
@@ -107,11 +107,11 @@ function StudentReport() {
             <div className="print:hidden">
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={attendance.monthlyTrend}>
-                  <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
+                  <CartesianGrid stroke="#D3E3EA" strokeDasharray="3 3" />
                   <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="percentage" stroke="#1f3a63" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="percentage" stroke="#225775" strokeWidth={2} dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -134,11 +134,11 @@ function StudentReport() {
                 <p className="text-xs text-muted mb-2">Monthly Marks Trend</p>
                 <ResponsiveContainer width="100%" height={220}>
                   <LineChart data={progress.monthlyTrend}>
-                    <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
+                    <CartesianGrid stroke="#D3E3EA" strokeDasharray="3 3" />
                     <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                     <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
                     <Tooltip />
-                    <Line type="monotone" dataKey="average" stroke="#1f3a63" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="average" stroke="#225775" strokeWidth={2} dot={{ r: 3 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -146,11 +146,11 @@ function StudentReport() {
                 <p className="text-xs text-muted mb-2">Subject-wise Comparison</p>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={progress.subjectComparison}>
-                    <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
+                    <CartesianGrid stroke="#D3E3EA" strokeDasharray="3 3" />
                     <XAxis dataKey="subject" tick={{ fontSize: 12 }} />
                     <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
                     <Tooltip />
-                    <Bar dataKey="average" fill="#3b82c4" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="average" fill="#95C83E" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

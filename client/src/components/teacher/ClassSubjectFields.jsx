@@ -9,14 +9,14 @@ function ClassSubjectFields({ classes, classId, subjectId, onClassChange, onSubj
   return (
     <div className="grid sm:grid-cols-2 gap-4">
       <div>
-        <label className="block text-sm text-ink mb-1">Class</label>
+        <label className="field-label">Class</label>
         <select
           value={classId}
           onChange={(e) => {
             onClassChange(e.target.value);
             onSubjectChange('');
           }}
-          className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="field-input"
         >
           <option value="">Select a class</option>
           {classes.map((c) => (
@@ -25,12 +25,12 @@ function ClassSubjectFields({ classes, classId, subjectId, onClassChange, onSubj
         </select>
       </div>
       <div>
-        <label className="block text-sm text-ink mb-1">Subject</label>
+        <label className="field-label">Subject</label>
         <select
           value={subjectId}
           onChange={(e) => onSubjectChange(e.target.value)}
           disabled={!classId}
-          className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-surface disabled:text-muted"
+          className="field-input"
         >
           <option value="">Select a subject</option>
           {subjectOptions.map((s) => (

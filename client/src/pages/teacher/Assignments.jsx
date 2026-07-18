@@ -88,7 +88,7 @@ function Assignments() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-display text-navy-800">Assignments</h2>
         {classes.length > 0 && (
-          <button onClick={openCreate} className="px-4 py-2 text-sm bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 transition-colors">
+          <button onClick={openCreate} className="btn-primary btn-sm">
             + New Assignment
           </button>
         )}
@@ -113,37 +113,37 @@ function Assignments() {
               )}
 
               <div>
-                <label className="block text-sm text-ink mb-1">Title</label>
+                <label className="field-label">Title</label>
                 <input
                   type="text"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="field-input"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-ink mb-1">Description</label>
+                <label className="field-label">Description</label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="field-input"
                 />
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-ink mb-1">Due Date</label>
+                  <label className="field-label">Due Date</label>
                   <input
                     type="date"
                     value={form.dueDate}
                     onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-navy-100 rounded-card focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    className="field-input"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-ink mb-1">Attachment (optional)</label>
+                  <label className="field-label">Attachment (optional)</label>
                   <input
                     type="file"
                     accept=".pdf,.doc,.docx,.zip"
@@ -156,10 +156,10 @@ function Assignments() {
               {formError && <p className="text-sm text-reject">{formError}</p>}
 
               <div className="flex gap-3">
-                <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 disabled:opacity-60">
+                <button type="submit" disabled={submitting} className="btn-primary">
                   {submitting ? 'Saving…' : 'Save'}
                 </button>
-                <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 text-navy-700 hover:underline">
+                <button type="button" onClick={() => setShowForm(false)} className="btn-link">
                   Cancel
                 </button>
               </div>
@@ -179,8 +179,8 @@ function Assignments() {
                   <p className="text-sm text-muted mt-1">{a.class} · {a.subject}</p>
                   {a.description && <p className="text-sm text-ink mt-2">{a.description}</p>}
                   <div className="flex gap-4 mt-4">
-                    <button onClick={() => openEdit(a)} className="text-xs text-navy-700 hover:underline">Edit</button>
-                    <button onClick={() => handleDelete(a)} className="text-xs text-reject hover:underline">Delete</button>
+                    <button onClick={() => openEdit(a)} className="btn-link-sm">Edit</button>
+                    <button onClick={() => handleDelete(a)} className="btn-link-danger-sm">Delete</button>
                   </div>
                 </div>
               ))}

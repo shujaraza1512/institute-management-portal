@@ -6,8 +6,12 @@ import LoadingState from '../../components/common/LoadingState.jsx';
 import ErrorState from '../../components/common/ErrorState.jsx';
 import PasswordInput from '../../components/common/PasswordInput.jsx';
 
+// New in Phase 8. The Examination Board account previously had no
+// self-profile page at all -- every other role did (Student/Teacher since
+// Phase 5/6). This fills that gap so "click your name -> Profile" works
+// consistently across all three roles.
 function Profile() {
-  const { data, loading, error, refetch } = useFetch('/teachers/me/profile');
+  const { data, loading, error, refetch } = useFetch('/admin/profile');
 
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(null);
@@ -26,7 +30,7 @@ function Profile() {
   if (error) return <ErrorState message={error} onRetry={refetch} />;
 
   const startEdit = () => {
-    setForm({ phone: data.phone || '', qualification: data.qualification || '' });
+    setForm({ name: data.name, email: data.email });
     setEditError('');
     setEditSuccess('');
     setEditing(true);
@@ -35,9 +39,15 @@ function Profile() {
   const saveProfile = async (e) => {
     e.preventDefault();
     setEditError('');
+
+    if (!form.name.trim() || !form.email.trim()) {
+      setEditError('Name and email are required.');
+      return;
+    }
+
     setSavingProfile(true);
     try {
-      await api.put('/teachers/me/profile', form);
+      await api.put('/admin/profile', form);
       setEditSuccess('Profile updated successfully.');
       setEditing(false);
       refetch();
@@ -60,7 +70,7 @@ function Profile() {
 
     setSubmitting(true);
     try {
-      await api.put('/teachers/me/password', { currentPassword, newPassword });
+      await api.put('/admin/profile/password', { currentPassword, newPassword });
       setPasswordSuccess('Password updated successfully.');
       setCurrentPassword('');
       setNewPassword('');
@@ -84,7 +94,7 @@ function Profile() {
             </div>
             <div className="min-w-0">
               <p className="font-display text-navy-800 truncate">{data.name}</p>
-              <p className="text-sm text-muted">Employee ID: {data.instituteId}</p>
+              <p className="text-sm text-muted">Institute ID: {data.instituteId}</p>
             </div>
           </div>
           {!editing && (
@@ -98,17 +108,14 @@ function Profile() {
 
         {editing ? (
           <form onSubmit={saveProfile} className="mt-6 space-y-4">
-            <p className="text-xs text-muted -mt-2">
-              Name, email, department, and class/subject assignments are managed by the Examination Board.
-            </p>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="field-label">Phone</label>
-                <input type="text" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="field-input" />
+                <label className="field-label">Name</label>
+                <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="field-input" />
               </div>
               <div>
-                <label className="field-label">Qualification</label>
-                <input type="text" value={form.qualification} onChange={(e) => setForm({ ...form, qualification: e.target.value })} className="field-input" />
+                <label className="field-label">Email</label>
+                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="field-input" />
               </div>
             </div>
 
@@ -124,28 +131,12 @@ function Profile() {
         ) : (
           <dl className="mt-6 grid sm:grid-cols-2 gap-4 text-sm">
             <div>
-              <dt className="text-muted">Department</dt>
-              <dd className="text-ink mt-0.5">{data.department || '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-muted">Qualification</dt>
-              <dd className="text-ink mt-0.5">{data.qualification || '—'}</dd>
-            </div>
-            <div>
               <dt className="text-muted">Email</dt>
               <dd className="text-ink mt-0.5">{data.email}</dd>
             </div>
             <div>
-              <dt className="text-muted">Phone</dt>
-              <dd className="text-ink mt-0.5">{data.phone || '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-muted">Assigned Classes</dt>
-              <dd className="text-ink mt-0.5">{data.assignedClasses.length ? data.assignedClasses.join(', ') : '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-muted">Assigned Subjects</dt>
-              <dd className="text-ink mt-0.5">{data.assignedSubjects.length ? data.assignedSubjects.join(', ') : '—'}</dd>
+              <dt className="text-muted">Role</dt>
+              <dd className="text-ink mt-0.5">Examination Board</dd>
             </div>
           </dl>
         )}

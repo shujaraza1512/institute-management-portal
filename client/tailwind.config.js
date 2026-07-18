@@ -4,28 +4,45 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Institutional navy — the portal's primary color, not Tailwind's default blue.
+        // Phase 8: rebuilt around the mandated 3-color brand palette.
+        // navy-700 is the exact brand blue (#225775); the rest of the
+        // scale is tints/shades of it for hover/active/background states.
         navy: {
-          50: '#eef2f8',
-          100: '#d7e1ee',
-          200: '#b0c3dd',
-          300: '#89a5cc',
-          400: '#5c80b3',
-          500: '#3d6299',
-          600: '#2c4c7c',
-          700: '#1f3a63',
-          800: '#162a49',
-          900: '#0e1c31',
+          50: '#EEF4F7',
+          100: '#D3E3EA',
+          200: '#A7C7D5',
+          300: '#7AABC0',
+          400: '#4E8FAB',
+          500: '#327597',
+          600: '#275F7D',
+          700: '#225775', // brand blue, exact
+          800: '#1A4359',
+          900: '#12303F',
         },
+        // Accent -- a lighter tint of the same blue family (links, secondary
+        // emphasis), not a separate hue.
         sky: {
-          500: '#3b82c4', // secondary accent, used sparingly (links, active states)
+          500: '#3D7A9E',
         },
-        surface: '#f7f9fc', // page background — off-white, not stark #fff
-        ink: '#1e293b', // primary text
-        muted: '#64748b', // secondary text
-        approve: '#2f855a', // approved / success states
-        pending: '#b7791f', // pending approval states
-        reject: '#c53030', // rejected / error states
+        // Brand green (#95C83E, exact) plus a couple of supporting shades
+        // for hover states and light badge/alert backgrounds.
+        green: {
+          50: '#F1F8E4',
+          100: '#EAF5D9',
+          500: '#95C83E', // brand green, exact
+          600: '#7FAE32',
+          700: '#6B9329',
+        },
+        surface: '#F5F8FA', // page background -- barely-off-white, blue-tinted
+        ink: '#1A2E38', // primary text -- dark blue-gray, not flat black
+        muted: '#5B7480', // secondary text -- medium blue-gray
+        // Status semantics, built entirely from the blue/green scale above
+        // (no red/amber) -- approved is brand green; pending is a lighter
+        // blue tint; rejected is the darkest blue shade, paired with an
+        // icon (not color alone) to stay distinguishable and accessible.
+        approve: '#95C83E',
+        pending: '#4E8FAB',
+        reject: '#12303F',
       },
       fontFamily: {
         display: ['"Lora"', 'serif'],
@@ -36,7 +53,7 @@ export default {
         card: '0.75rem',
       },
       boxShadow: {
-        card: '0 1px 3px rgba(15, 28, 49, 0.08), 0 1px 2px rgba(15, 28, 49, 0.06)',
+        card: '0 1px 3px rgba(18, 48, 63, 0.08), 0 1px 2px rgba(18, 48, 63, 0.06)',
       },
     },
   },

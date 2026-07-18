@@ -102,7 +102,7 @@ function Students() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-display text-navy-800">Manage Students</h2>
-        <button onClick={openCreate} className="px-4 py-2 text-sm bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 transition-colors">
+        <button onClick={openCreate} className="btn-primary btn-sm">
           + Add Student
         </button>
       </div>
@@ -155,14 +155,14 @@ function Students() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-3">
-                      <Link to={`/admin/students/${s.id}/report`} className="text-xs text-navy-700 hover:underline flex items-center gap-1">
+                      <Link to={`/admin/students/${s.id}/report`} className="btn-link-sm inline-flex items-center gap-1">
                         <FileText className="w-3 h-3" /> Report
                       </Link>
-                      <button onClick={() => openEdit(s)} className="text-xs text-navy-700 hover:underline">Edit</button>
+                      <button onClick={() => openEdit(s)} className="btn-link-sm">Edit</button>
                       <button onClick={() => toggleStatus(s)} className="text-xs text-pending hover:underline">
                         {s.isActive ? 'Deactivate' : 'Activate'}
                       </button>
-                      <button onClick={() => handleDelete(s)} className="text-xs text-reject hover:underline">Delete</button>
+                      <button onClick={() => handleDelete(s)} className="btn-link-danger-sm">Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -177,29 +177,29 @@ function Students() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-ink mb-1">Name</label>
+                <label className="field-label">Name</label>
                 <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Institute ID</label>
+                <label className="field-label">Institute ID</label>
                 <input type="text" value={form.instituteId} onChange={(e) => setForm({ ...form, instituteId: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Email</label>
+                <label className="field-label">Email</label>
                 <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               {!editingId && (
                 <div>
-                  <label className="block text-sm text-ink mb-1">Password</label>
+                  <label className="field-label">Password</label>
                   <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
                 </div>
               )}
               <div>
-                <label className="block text-sm text-ink mb-1">Roll Number</label>
+                <label className="field-label">Roll Number</label>
                 <input type="text" value={form.rollNumber} onChange={(e) => setForm({ ...form, rollNumber: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Class</label>
+                <label className="field-label">Class</label>
                 <select value={form.classId} onChange={(e) => setForm({ ...form, classId: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card">
                   <option value="">Unassigned</option>
                   {lookups?.classes.map((c) => (
@@ -208,34 +208,34 @@ function Students() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Phone</label>
+                <label className="field-label">Phone</label>
                 <input type="text" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Admission Date</label>
+                <label className="field-label">Admission Date</label>
                 <input type="date" value={form.admissionDate} onChange={(e) => setForm({ ...form, admissionDate: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Guardian Name</label>
+                <label className="field-label">Guardian Name</label>
                 <input type="text" value={form.guardianName} onChange={(e) => setForm({ ...form, guardianName: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Guardian Phone</label>
+                <label className="field-label">Guardian Phone</label>
                 <input type="text" value={form.guardianPhone} onChange={(e) => setForm({ ...form, guardianPhone: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
               </div>
             </div>
             <div>
-              <label className="block text-sm text-ink mb-1">Address</label>
+              <label className="field-label">Address</label>
               <textarea value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} rows={2} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
             </div>
 
             {formError && <p className="text-sm text-reject">{formError}</p>}
 
             <div className="flex gap-3">
-              <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 disabled:opacity-60">
+              <button type="submit" disabled={submitting} className="btn-primary">
                 {submitting ? 'Saving…' : 'Save'}
               </button>
-              <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 text-navy-700 hover:underline">Cancel</button>
+              <button type="button" onClick={() => setShowForm(false)} className="btn-link">Cancel</button>
             </div>
           </form>
         </Modal>

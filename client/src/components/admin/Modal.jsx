@@ -11,7 +11,11 @@ function Modal({ title, onClose, children, maxWidth = 'max-w-lg' }) {
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-navy-100">
           <p className="font-display text-navy-800">{title}</p>
-          <button onClick={onClose} className="text-muted hover:text-ink">
+          <button
+            onClick={onClose}
+            aria-label="Close dialog"
+            className="text-muted hover:text-ink focus:outline-none focus:ring-2 focus:ring-navy-500 rounded"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>

@@ -88,7 +88,7 @@ function Announcements() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-display text-navy-800">Announcements</h2>
-        <button onClick={openCreate} className="px-4 py-2 text-sm bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 transition-colors">
+        <button onClick={openCreate} className="btn-primary btn-sm">
           + New Announcement
         </button>
       </div>
@@ -122,8 +122,8 @@ function Announcements() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-3">
-                      <button onClick={() => openEdit(a)} className="text-xs text-navy-700 hover:underline">Edit</button>
-                      <button onClick={() => handleDelete(a)} className="text-xs text-reject hover:underline">Delete</button>
+                      <button onClick={() => openEdit(a)} className="btn-link-sm">Edit</button>
+                      <button onClick={() => handleDelete(a)} className="btn-link-danger-sm">Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -137,15 +137,15 @@ function Announcements() {
         <Modal title={editingId ? 'Edit Announcement' : 'New Announcement'} onClose={() => setShowForm(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm text-ink mb-1">Title</label>
+              <label className="field-label">Title</label>
               <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
             </div>
             <div>
-              <label className="block text-sm text-ink mb-1">Description</label>
+              <label className="field-label">Description</label>
               <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
             </div>
             <div>
-              <label className="block text-sm text-ink mb-1">Audience</label>
+              <label className="field-label">Audience</label>
               <select value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card">
                 <option value="all">Everyone</option>
                 <option value="students">Students</option>
@@ -154,12 +154,12 @@ function Announcements() {
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-ink mb-1">Publish Date</label>
+                <label className="field-label">Publish Date</label>
                 <input type="date" value={form.publishAt} onChange={(e) => setForm({ ...form, publishAt: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
                 <p className="text-xs text-muted mt-1">Leave blank to publish immediately.</p>
               </div>
               <div>
-                <label className="block text-sm text-ink mb-1">Expiry Date</label>
+                <label className="field-label">Expiry Date</label>
                 <input type="date" value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
                 <p className="text-xs text-muted mt-1">Leave blank to never expire.</p>
               </div>
@@ -168,10 +168,10 @@ function Announcements() {
             {formError && <p className="text-sm text-reject">{formError}</p>}
 
             <div className="flex gap-3">
-              <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 disabled:opacity-60">
+              <button type="submit" disabled={submitting} className="btn-primary">
                 {submitting ? 'Saving…' : 'Save'}
               </button>
-              <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 text-navy-700 hover:underline">Cancel</button>
+              <button type="button" onClick={() => setShowForm(false)} className="btn-link">Cancel</button>
             </div>
           </form>
         </Modal>

@@ -74,7 +74,7 @@ function Subjects() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-display text-navy-800">Manage Subjects</h2>
-        <button onClick={openCreate} className="px-4 py-2 text-sm bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 transition-colors">
+        <button onClick={openCreate} className="btn-primary btn-sm">
           + Add Subject
         </button>
       </div>
@@ -100,8 +100,8 @@ function Subjects() {
                   <td className="px-4 py-3">{s.assignedTeachers.length ? s.assignedTeachers.join(', ') : '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-3">
-                      <button onClick={() => openEdit(s)} className="text-xs text-navy-700 hover:underline">Edit</button>
-                      <button onClick={() => handleDelete(s)} className="text-xs text-reject hover:underline">Delete</button>
+                      <button onClick={() => openEdit(s)} className="btn-link-sm">Edit</button>
+                      <button onClick={() => handleDelete(s)} className="btn-link-danger-sm">Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -115,21 +115,21 @@ function Subjects() {
         <Modal title={editingId ? 'Edit Subject' : 'Add Subject'} onClose={() => setShowForm(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm text-ink mb-1">Subject Name</label>
+              <label className="field-label">Subject Name</label>
               <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
             </div>
             <div>
-              <label className="block text-sm text-ink mb-1">Subject Code</label>
+              <label className="field-label">Subject Code</label>
               <input type="text" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} className="w-full px-3 py-2 border border-navy-100 rounded-card" />
             </div>
 
             {formError && <p className="text-sm text-reject">{formError}</p>}
 
             <div className="flex gap-3">
-              <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 disabled:opacity-60">
+              <button type="submit" disabled={submitting} className="btn-primary">
                 {submitting ? 'Saving…' : 'Save'}
               </button>
-              <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 text-navy-700 hover:underline">Cancel</button>
+              <button type="button" onClick={() => setShowForm(false)} className="btn-link">Cancel</button>
             </div>
           </form>
         </Modal>

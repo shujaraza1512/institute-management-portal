@@ -20,6 +20,7 @@ router.use(protect, authorize('teacher'), loadTeacher);
 
 router.get('/me/dashboard', teacherCtrl.getDashboard);
 router.get('/me/profile', teacherCtrl.getProfile);
+router.put('/me/profile', teacherCtrl.updateProfile); // Phase 8 -- self-service phone/qualification edits
 router.get('/me/classes', teacherCtrl.getAssignedClasses);
 router.get('/me/students', teacherCtrl.getMyStudents); // Phase 7.5 -- data source for the result submission form
 router.get('/me/timetable', teacherCtrl.getTimetable);

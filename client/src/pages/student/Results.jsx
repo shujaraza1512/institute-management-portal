@@ -22,7 +22,7 @@ function Results() {
             className="px-3 py-2 border border-navy-100 rounded-card text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
           />
           {month && (
-            <button onClick={() => setMonth('')} className="text-sm text-navy-700 hover:underline">
+            <button onClick={() => setMonth('')} className="btn-link">
               Clear
             </button>
           )}
@@ -39,7 +39,7 @@ function Results() {
         />
       )}
       {!loading && !error && data && data.length > 0 && (
-        <div className="bg-white rounded-card shadow-card overflow-x-auto">
+        <div className="bg-white rounded-card shadow-card overflow-x-auto data-table">
           <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="text-left text-muted border-b border-navy-100">

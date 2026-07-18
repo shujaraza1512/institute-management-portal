@@ -141,11 +141,36 @@ const getProfile = async (req, res, next) => {
         rollNumber: student.rollNumber,
         phone: student.phone,
         address: student.address,
+        guardianName: student.guardianName,
         guardianPhone: student.guardianPhone,
         photoUrl: student.photoUrl,
         class: student.class ? { name: student.class.name, section: student.class.section } : null,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// --- Self-service profile edit (Phase 8) ---------------------------------------
+// Deliberately narrow: a student can update their own contact details, but
+// not their name/email/Institute ID/class/roll number -- those stay
+// admin-managed (Phase 7's Student Management), consistent with the
+// original spec's RBAC boundaries. This only fills in the "Edit profile /
+// Save changes" capability the Profile page was missing; it doesn't change
+// who can touch what.
+const updateProfile = async (req, res, next) => {
+  try {
+    const student = req.student;
+    const { phone, address, guardianName, guardianPhone } = req.body;
+
+    if (phone !== undefined) student.phone = phone;
+    if (address !== undefined) student.address = address;
+    if (guardianName !== undefined) student.guardianName = guardianName;
+    if (guardianPhone !== undefined) student.guardianPhone = guardianPhone;
+    await student.save();
+
+    res.json({ success: true, message: 'Profile updated.' });
   } catch (err) {
     next(err);
   }
@@ -420,6 +445,7 @@ const getLectureMaterials = async (req, res, next) => {
 module.exports = {
   getDashboard,
   getProfile,
+  updateProfile,
   changePassword,
   getResults,
   getProgress,

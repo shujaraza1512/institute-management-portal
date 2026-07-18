@@ -16,7 +16,7 @@ function Hero() {
           <p className="mt-4 text-muted max-w-md">{INSTITUTE_TAGLINE}</p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link to={ctaHref} className="px-6 py-3 bg-navy-700 text-white rounded-card shadow-card hover:bg-navy-800 transition-colors">
+            <Link to={ctaHref} className="btn-primary">
               {ctaLabel}
             </Link>
             <a href="#features" className="px-6 py-3 text-navy-700 border border-navy-200 rounded-card hover:border-navy-400 transition-colors">

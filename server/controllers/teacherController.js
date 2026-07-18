@@ -93,10 +93,32 @@ const getProfile = async (req, res, next) => {
         instituteId: teacher.user.instituteId,
         department: teacher.department,
         phone: teacher.phone,
+        qualification: teacher.qualification,
         assignedClasses: classNames,
         assignedSubjects: subjectNames,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// --- Self-service profile edit (Phase 8) ---------------------------------------
+// Deliberately narrow, mirroring the student version: phone and
+// qualification are self-editable; name/email/Institute ID/department/
+// subject-class assignments stay admin-managed (Phase 7's Teacher
+// Management). This only completes the "Edit profile / Save changes"
+// capability the Profile page was missing.
+const updateProfile = async (req, res, next) => {
+  try {
+    const teacher = req.teacher;
+    const { phone, qualification } = req.body;
+
+    if (phone !== undefined) teacher.phone = phone;
+    if (qualification !== undefined) teacher.qualification = qualification;
+    await teacher.save();
+
+    res.json({ success: true, message: 'Profile updated.' });
   } catch (err) {
     next(err);
   }
@@ -248,6 +270,7 @@ const getMyStudents = async (req, res, next) => {
 module.exports = {
   getDashboard,
   getProfile,
+  updateProfile,
   changePassword,
   getTimetable,
   getAnnouncements,

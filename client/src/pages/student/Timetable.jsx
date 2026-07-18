@@ -22,7 +22,7 @@ function Timetable() {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-display text-navy-800">Weekly Timetable</h2>
-      <div className="bg-white rounded-card shadow-card overflow-x-auto">
+      <div className="bg-white rounded-card shadow-card overflow-x-auto data-table">
         <table className="w-full text-sm min-w-[640px]">
           <thead>
             <tr className="text-left text-muted border-b border-navy-100">
